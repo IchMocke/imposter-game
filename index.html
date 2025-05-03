@@ -165,6 +165,28 @@
             position: relative;
             color: #666;
         }
+
+        .player-order-section {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+        }
+        .player-order-list {
+            padding-left: 25px;
+        }
+        .player-order-list li {
+            margin: 8px 0;
+            padding: 8px 12px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+        }
+        .current-player {
+            background-color: #5865F2 !important;
+            color: white;
+            font-weight: bold;
+        }
+        
     </style>
 </head>
 <body>
@@ -265,6 +287,13 @@
             <div class="player-list" id="gamePlayerList">
                 <!-- Player list will be generated here -->
             </div>
+
+            <div class="player-order-section">
+            <h3>Spielerreihenfolge:</h3>
+            <ol id="playerOrderList" class="player-order-list">
+            <!-- Spielerreihenfolge wird hier angezeigt -->
+            </ol>
+            </div>
             
             <button id="newGameBtn">Neues Spiel</button>
         </div>
@@ -335,6 +364,7 @@
             started: false,
             currentPlayerName: '',
             isHost: false
+            gameState.playerOrder = [];
         };
         
         // DOM Elements
@@ -400,6 +430,8 @@
             }
             return code;
         }
+
+        
         
         // Spiel erstellen (Host)
         createGameBtn.addEventListener('click', () => {
@@ -679,6 +711,19 @@ joinGameBtn.addEventListener('click', () => {
                 playerCard.textContent = player;
                 gamePlayerList.appendChild(playerCard);
             });
+        }
+
+        function createRandomPlayerOrder(players) {
+            // Kopie der Spielerliste erstellen
+            const shuffledPlayers = [...players];
+            
+            // Fisher-Yates Shuffle Algorithmus
+            for (let i = shuffledPlayers.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledPlayers[i], shuffledPlayers[j]] = [shuffledPlayers[j], shuffledPlayers[i]];
+            }
+            
+            return shuffledPlayers;
         }
         
         // Spielansicht anzeigen
