@@ -4,7 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Imposter Wortspiel</title>
+    <!-- Firebase SDK einfügen -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
+        /* Deine bestehenden Styles hier beibehalten */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             max-width: 800px;
@@ -19,154 +23,16 @@
             padding: 20px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
-        h1 {
-            color: #4a4a4a;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .section {
-            margin-bottom: 20px;
-        }
-        input, button, select {
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        button {
-            background-color: #5865F2;
-            color: white;
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #4752C4;
-        }
-        .hidden {
-            display: none;
-        }
-        .role-display {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 6px;
-            text-align: center;
-            font-size: 18px;
-        }
-        .normal-player {
-            background-color: #43B581;
-            color: white;
-        }
-        .imposter {
-            background-color: #F04747;
-            color: white;
-        }
-        .word-display {
-            font-weight: bold;
-            font-size: 24px;
-            margin: 10px 0;
-        }
-        .player-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        .player-card {
-            background: #eee;
-            padding: 8px 12px;
-            border-radius: 20px;
-            display: inline-block;
-        }
-        .game-code {
-            text-align: center;
-            font-size: 24px;
-            font-weight: bold;
-            margin: 15px 0;
-            padding: 10px;
-            background: #e9ecef;
-            border-radius: 4px;
-        }
-        .tabs {
-            display: flex;
-            margin-bottom: 20px;
-        }
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            background: #e9ecef;
-            border-radius: 4px 4px 0 0;
-            margin-right: 5px;
-        }
-        .tab.active {
-            background: #5865F2;
-            color: white;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .small-text {
-            font-size: 12px;
-            color: #666;
-        }
-        .info-block {
-            background: #e9ecef;
-            padding: 15px;
-            border-radius: 4px;
-            margin: 15px 0;
-        }
-        .category-select {
-            margin-bottom: 15px;
-        }
-        .category-option {
-            display: inline-block;
-            margin: 5px;
-            padding: 10px 15px;
-            background: #e9ecef;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .category-option:hover {
-            background: #d0d7de;
-        }
-        .category-option.selected {
-            background: #5865F2;
-            color: white;
-        }
-        .word-selection {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        .or-divider {
-            text-align: center;
-            margin: 15px 0;
-            position: relative;
-        }
-        .or-divider:before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: #ddd;
-        }
-        .or-divider span {
-            background: white;
-            padding: 0 10px;
-            position: relative;
-            color: #666;
-        }
+        /* Weitere Styles wie in deiner Original-Datei */
+        /* ... */
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Imposter Wortspiel</h1>
+        
+        <!-- Deine bestehende HTML-Struktur hier beibehalten -->
+        <!-- ... -->
         
         <div class="tabs">
             <div class="tab active" id="hostTab">Spiel erstellen</div>
@@ -175,100 +41,38 @@
         
         <!-- Host Game Section -->
         <div class="section" id="hostSection">
-            <h2>Neues Spiel erstellen</h2>
-            
-            <div class="form-group">
-                <label for="hostName">Dein Name:</label>
-                <input type="text" id="hostName" placeholder="Dein Name">
-            </div>
-            
-            <div class="form-group">
-                <label for="playerCount">Anzahl der Spieler:</label>
-                <input type="number" id="playerCount" min="3" value="4">
-            </div>
-            
-            <div class="form-group">
-                <label>Wähle eine Kategorie:</label>
-                <div class="category-select" id="categorySelect">
-                    <div class="category-option" data-category="tiere">Tiere</div>
-                    <div class="category-option" data-category="berufe">Berufe</div>
-                    <div class="category-option" data-category="gegenstaende">Gegenstände</div>
-                    <div class="category-option" data-category="orte">Orte</div>
-                    <div class="category-option" data-category="essen">Essen & Trinken</div>
-                </div>
-            </div>
-            
-            <div class="or-divider">
-                <span>ODER</span>
-            </div>
-            
-            <div class="form-group">
-                <label for="wordInput">Eigenes Wort eingeben:</label>
-                <input type="text" id="wordInput" placeholder="z.B. Sonne">
-            </div>
-            
-            <button id="createGameBtn">Spiel erstellen</button>
-            
-            <div class="info-block hidden" id="gameCodeSection">
-                <p>Teile diesen Code mit deinen Mitspielern:</p>
-                <div class="game-code" id="gameCodeDisplay"></div>
-                <p class="small-text">Die Spieler können mit diesem Code dem Spiel beitreten.</p>
-                
-                <h3>Spielerliste:</h3>
-                <div class="player-list" id="hostPlayerList">
-                    <!-- Player list will be generated here -->
-                </div>
-                
-                <button id="startGameBtn" class="hidden">Spiel starten</button>
-            </div>
+            <!-- Der Rest deines bestehenden HTML-Codes -->
+            <!-- ... -->
         </div>
         
-        <!-- Join Game Section (Initially Hidden) -->
+        <!-- Join Game Section -->
         <div class="section hidden" id="joinSection">
-            <h2>Einem Spiel beitreten</h2>
-            
-            <div class="form-group">
-                <label for="playerName">Dein Name:</label>
-                <input type="text" id="playerName" placeholder="Dein Name">
-            </div>
-            
-            <div class="form-group">
-                <label for="gameCodeInput">Spiel-Code:</label>
-                <input type="text" id="gameCodeInput" placeholder="z.B. ABC123">
-            </div>
-            
-            <button id="joinGameBtn">Spiel beitreten</button>
-            
-            <div class="info-block hidden" id="waitingRoomSection">
-                <h3>Warte auf Spielstart...</h3>
-                <p>Der Spielleiter wird das Spiel bald starten.</p>
-                
-                <h3>Spielerliste:</h3>
-                <div class="player-list" id="joinPlayerList">
-                    <!-- Player list will be generated here -->
-                </div>
-            </div>
+            <!-- ... -->
         </div>
         
-        <!-- Game View Section (Initially Hidden) -->
+        <!-- Game View Section -->
         <div class="section hidden" id="gameSection">
-            <h2>Spiel läuft</h2>
-            
-            <div class="role-display" id="playerRoleDisplay">
-                <!-- Role will be displayed here -->
-            </div>
-            
-            <h3>Spielerliste:</h3>
-            <div class="player-list" id="gamePlayerList">
-                <!-- Player list will be generated here -->
-            </div>
-            
-            <button id="newGameBtn">Neues Spiel</button>
+            <!-- ... -->
         </div>
     </div>
 
     <script>
-        // Word categories
+        // Firebase Konfiguration
+        const firebaseConfig = {
+            apiKey: "DEINE_API_KEY",
+            authDomain: "dein-projekt.firebaseapp.com",
+            databaseURL: "https://dein-projekt-default-rtdb.firebaseio.com",
+            projectId: "dein-projekt",
+            storageBucket: "dein-projekt.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123456789"
+        };
+        
+        // Firebase initialisieren
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // Deine Wort-Kategorien beibehalten
         const wordCategories = {
             tiere: [
                 "Elefant", "Pinguin", "Giraffe", "Löwe", "Tiger", "Zebra", "Känguru", "Nashorn", 
@@ -276,33 +80,10 @@
                 "Papagei", "Flamingo", "Krokodil", "Gorilla", "Eisbär", "Wolf", "Fuchs", 
                 "Igel", "Eichhörnchen", "Biber", "Otter", "Fledermaus"
             ],
-            berufe: [
-                "Arzt", "Lehrer", "Koch", "Feuerwehrmann", "Polizist", "Pilot", "Architekt", 
-                "Designer", "Programmierer", "Schauspieler", "Musiker", "Künstler", "Anwalt", 
-                "Richter", "Journalist", "Fotograf", "Bäcker", "Gärtner", "Tischler", "Elektriker", 
-                "Friseur", "Mechaniker", "Schneider", "Zahnarzt", "Tierarzt", "Krankenpfleger"
-            ],
-            gegenstaende: [
-                "Stuhl", "Tisch", "Lampe", "Uhr", "Buch", "Stift", "Handy", "Computer", "Fernseher", 
-                "Kamera", "Brille", "Schlüssel", "Tasche", "Schirm", "Geldbörse", "Schere", "Tasse", 
-                "Flasche", "Messer", "Gabel", "Löffel", "Teller", "Vase", "Kissen", "Decke", "Spiegel", 
-                "Kerze", "Bild", "Ring", "Kette", "Mütze", "Schal"
-            ],
-            orte: [
-                "Strand", "Berg", "Wald", "Wüste", "Insel", "Stadt", "Dorf", "Park", "Zoo", "Museum", 
-                "Kino", "Theater", "Restaurant", "Café", "Bahnhof", "Flughafen", "Hafen", "Schule", 
-                "Universität", "Krankenhaus", "Hotel", "Supermarkt", "Bibliothek", "Schwimmbad", 
-                "Fitnessstudio", "Büro", "Fabrik", "Bauernhof", "Schloss", "Kirche"
-            ],
-            essen: [
-                "Pizza", "Burger", "Pasta", "Sushi", "Schokolade", "Eis", "Kuchen", "Brot", "Käse", 
-                "Suppe", "Salat", "Steak", "Fisch", "Hühnchen", "Reis", "Kartoffel", "Apfel", "Banane", 
-                "Orange", "Erdbeere", "Tomate", "Gurke", "Karotte", "Kaffee", "Tee", "Saft", "Wasser", 
-                "Bier", "Wein", "Milch"
-            ]
+            // Weitere Kategorien...
         };
         
-        // Game state
+        // Spielzustand
         const gameState = {
             gameCode: '',
             word: '',
@@ -310,50 +91,16 @@
             players: [],
             imposterIndex: -1,
             started: false,
-            currentPlayerName: ''
+            currentPlayerName: '',
+            isHost: false
         };
         
-        // DOM Elements
+        // DOM-Elemente referenzieren (wie in deinem Original-Code)
         const hostTab = document.getElementById('hostTab');
         const joinTab = document.getElementById('joinTab');
-        const hostSection = document.getElementById('hostSection');
-        const joinSection = document.getElementById('joinSection');
-        const gameSection = document.getElementById('gameSection');
+        // Weitere Element-Referenzen...
         
-        const hostName = document.getElementById('hostName');
-        const playerCount = document.getElementById('playerCount');
-        const categorySelect = document.getElementById('categorySelect');
-        const wordInput = document.getElementById('wordInput');
-        const createGameBtn = document.getElementById('createGameBtn');
-        
-        const gameCodeSection = document.getElementById('gameCodeSection');
-        const gameCodeDisplay = document.getElementById('gameCodeDisplay');
-        const hostPlayerList = document.getElementById('hostPlayerList');
-        const startGameBtn = document.getElementById('startGameBtn');
-        
-        const playerName = document.getElementById('playerName');
-        const gameCodeInput = document.getElementById('gameCodeInput');
-        const joinGameBtn = document.getElementById('joinGameBtn');
-        
-        const waitingRoomSection = document.getElementById('waitingRoomSection');
-        const joinPlayerList = document.getElementById('joinPlayerList');
-        
-        const playerRoleDisplay = document.getElementById('playerRoleDisplay');
-        const gamePlayerList = document.getElementById('gamePlayerList');
-        const newGameBtn = document.getElementById('newGameBtn');
-        
-        // Set up category selection
-        const categoryOptions = categorySelect.querySelectorAll('.category-option');
-        categoryOptions.forEach(option => {
-            option.addEventListener('click', () => {
-                // Toggle selection
-                categoryOptions.forEach(opt => opt.classList.remove('selected'));
-                option.classList.add('selected');
-                gameState.category = option.dataset.category;
-            });
-        });
-        
-        // Tab navigation
+        // Tab-Wechsel (wie in deinem Original-Code)
         hostTab.addEventListener('click', () => {
             hostTab.classList.add('active');
             joinTab.classList.remove('active');
@@ -368,7 +115,27 @@
             hostSection.classList.add('hidden');
         });
         
-        // Create game function (Host)
+        // Kategorie-Auswahl
+        const categoryOptions = categorySelect.querySelectorAll('.category-option');
+        categoryOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                categoryOptions.forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+                gameState.category = option.dataset.category;
+            });
+        });
+        
+        // Spielcode generieren
+        function generateGameCode() {
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+            return code;
+        }
+        
+        // Spiel erstellen (Host)
         createGameBtn.addEventListener('click', () => {
             const name = hostName.value.trim();
             const count = parseInt(playerCount.value);
@@ -384,16 +151,18 @@
                 return;
             }
             
-            // Check if either category is selected or custom word is entered
             if (!gameState.category && customWord === '') {
                 alert('Bitte wähle eine Kategorie oder gib ein eigenes Wort ein.');
                 return;
             }
             
-            // Generate a random game code
-            gameState.gameCode = generateGameCode();
+            // Spielcode generieren
+            const gameCode = generateGameCode();
+            gameState.gameCode = gameCode;
+            gameState.currentPlayerName = name;
+            gameState.isHost = true;
             
-            // Set the word - either custom or random from selected category
+            // Wort festlegen
             if (customWord !== '') {
                 gameState.word = customWord;
             } else {
@@ -401,27 +170,53 @@
                 gameState.word = categoryWords[Math.floor(Math.random() * categoryWords.length)];
             }
             
-            gameState.players = [name]; // Host is first player
-            gameState.currentPlayerName = name;
+            // Spieler hinzufügen
+            gameState.players = [name];
             
-            // Display the game code
-            gameCodeDisplay.textContent = gameState.gameCode;
+            // Spiel in Firebase erstellen
+            database.ref('games/' + gameCode).set({
+                code: gameCode,
+                word: gameState.word,
+                category: gameState.category || 'custom',
+                players: gameState.players,
+                started: false,
+                hostName: name,
+                createdAt: firebase.database.ServerValue.TIMESTAMP
+            });
+            
+            // Host dieser Spielsitzung zuordnen
+            database.ref('games/' + gameCode + '/players').on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    gameState.players = snapshot.val();
+                    updateHostPlayerList();
+                    
+                    if (gameState.players.length >= 3) {
+                        startGameBtn.classList.remove('hidden');
+                    }
+                }
+            });
+            
+            // Spielstatus überwachen
+            database.ref('games/' + gameCode + '/started').on('value', (snapshot) => {
+                if (snapshot.exists() && snapshot.val() === true) {
+                    gameState.started = true;
+                    
+                    // Imposter-Index abrufen
+                    database.ref('games/' + gameCode + '/imposterIndex').once('value', (snapshot) => {
+                        if (snapshot.exists()) {
+                            gameState.imposterIndex = snapshot.val();
+                            showGameView();
+                        }
+                    });
+                }
+            });
+            
+            // Spielcode anzeigen
+            gameCodeDisplay.textContent = gameCode;
             gameCodeSection.classList.remove('hidden');
-            
-            // Update player list
-            updateHostPlayerList();
-            
-            // Show start button when there are enough players
-            if (gameState.players.length >= 3) {
-                startGameBtn.classList.remove('hidden');
-            }
-            
-            // In a real implementation, you would set up server communication here
-            // For demonstration, we'll simulate players joining
-            simulatePlayersJoining();
         });
         
-        // Join game function (Player)
+        // Spiel beitreten (Spieler)
         joinGameBtn.addEventListener('click', () => {
             const name = playerName.value.trim();
             const code = gameCodeInput.value.trim().toUpperCase();
@@ -436,93 +231,137 @@
                 return;
             }
             
-            // Check if game code exists (in a real app, this would be a server check)
-            if (code !== gameState.gameCode) {
-                alert('Ungültiger Spiel-Code. Bitte überprüfe den Code und versuche es erneut.');
-                return;
-            }
-            
-            // Add player to the game
-            if (!gameState.players.includes(name)) {
-                gameState.players.push(name);
-                gameState.currentPlayerName = name;
-                
-                // Show waiting room
-                waitingRoomSection.classList.remove('hidden');
-                updateJoinPlayerList();
-                
-                // If the game has already started, show the game view
-                if (gameState.started) {
-                    showGameView();
+            // Prüfen, ob Spiel existiert
+            database.ref('games/' + code).once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const game = snapshot.val();
+                    
+                    // Prüfen, ob Name bereits verwendet wird
+                    if (game.players && game.players.includes(name)) {
+                        alert('Dieser Name wird bereits verwendet. Bitte wähle einen anderen Namen.');
+                        return;
+                    }
+                    
+                    // Prüfen, ob Spiel bereits gestartet ist
+                    if (game.started) {
+                        alert('Das Spiel hat bereits begonnen. Bitte trete einem anderen Spiel bei.');
+                        return;
+                    }
+                    
+                    // Spieler zum Spiel hinzufügen
+                    gameState.gameCode = code;
+                    gameState.currentPlayerName = name;
+                    
+                    // Spieler zur Spielerliste hinzufügen
+                    const updatedPlayers = game.players ? [...game.players, name] : [name];
+                    database.ref('games/' + code + '/players').set(updatedPlayers);
+                    
+                    // Spielzustand überwachen
+                    database.ref('games/' + code + '/players').on('value', (snapshot) => {
+                        if (snapshot.exists()) {
+                            gameState.players = snapshot.val();
+                            updateJoinPlayerList();
+                        }
+                    });
+                    
+                    // Spielstatus überwachen
+                    database.ref('games/' + code + '/started').on('value', (snapshot) => {
+                        if (snapshot.exists() && snapshot.val() === true) {
+                            gameState.started = true;
+                            
+                            // Spielwort und Imposter-Index abrufen
+                            database.ref('games/' + code).once('value', (snapshot) => {
+                                if (snapshot.exists()) {
+                                    const gameData = snapshot.val();
+                                    gameState.word = gameData.word;
+                                    gameState.imposterIndex = gameData.imposterIndex;
+                                    showGameView();
+                                }
+                            });
+                        }
+                    });
+                    
+                    // Warteraum anzeigen
+                    waitingRoomSection.classList.remove('hidden');
+                } else {
+                    alert('Ungültiger Spiel-Code. Bitte überprüfe den Code und versuche es erneut.');
                 }
-                
-                // Update host view (in a real app, this would be via server)
-                updateHostPlayerList();
-                
-                if (gameState.players.length >= 3) {
-                    startGameBtn.classList.remove('hidden');
-                }
-            } else {
-                alert('Dieser Name wird bereits verwendet. Bitte wähle einen anderen Namen.');
-            }
+            });
         });
         
-        // Start game function
+        // Spiel starten (Host)
         startGameBtn.addEventListener('click', () => {
+            if (!gameState.isHost) return;
+            
             if (gameState.players.length < 3) {
                 alert('Es müssen mindestens 3 Spieler sein, um das Spiel zu starten.');
                 return;
             }
             
-            // Assign imposter randomly
-            gameState.imposterIndex = Math.floor(Math.random() * gameState.players.length);
-            gameState.started = true;
+            // Imposter zufällig auswählen
+            const imposterIndex = Math.floor(Math.random() * gameState.players.length);
             
-            // Show game view for host
-            showGameView();
+            // Spiel starten und Imposter setzen
+            database.ref('games/' + gameState.gameCode).update({
+                started: true,
+                imposterIndex: imposterIndex
+            });
             
-            // In a real app, notify all players that the game has started
-            // For demonstration, we'll just simulate it
-            console.log('Game started! Imposter is:', gameState.players[gameState.imposterIndex]);
+            gameState.imposterIndex = imposterIndex;
         });
         
-        // New game function
+        // Neues Spiel starten
         newGameBtn.addEventListener('click', () => {
-            // Reset game state
+            // Spiel verlassen und zurücksetzen
+            if (gameState.gameCode) {
+                // Vom Firebase-Listener abmelden
+                database.ref('games/' + gameState.gameCode).off();
+                
+                // Wenn Host und keine Spieler mehr da sind, Spiel löschen
+                if (gameState.isHost) {
+                    database.ref('games/' + gameState.gameCode).remove();
+                } else {
+                    // Spieler aus Liste entfernen
+                    database.ref('games/' + gameState.gameCode + '/players').once('value', (snapshot) => {
+                        if (snapshot.exists()) {
+                            const players = snapshot.val();
+                            const index = players.indexOf(gameState.currentPlayerName);
+                            if (index !== -1) {
+                                players.splice(index, 1);
+                                database.ref('games/' + gameState.gameCode + '/players').set(players);
+                            }
+                        }
+                    });
+                }
+            }
+            
+            // Gamestate zurücksetzen
             gameState.gameCode = '';
             gameState.word = '';
             gameState.category = '';
             gameState.players = [];
             gameState.imposterIndex = -1;
             gameState.started = false;
+            gameState.isHost = false;
             
-            // Show host section
+            // UI zurücksetzen
             hostSection.classList.remove('hidden');
             joinSection.classList.add('hidden');
             gameSection.classList.add('hidden');
             gameCodeSection.classList.add('hidden');
             waitingRoomSection.classList.add('hidden');
             
-            // Clear inputs and selections
+            // Eingaben und Auswahlen zurücksetzen
             wordInput.value = '';
             gameCodeInput.value = '';
             categoryOptions.forEach(opt => opt.classList.remove('selected'));
             
-            // Reset tabs
+            // Tabs zurücksetzen
             hostTab.classList.add('active');
             joinTab.classList.remove('active');
         });
         
-        // Helper functions
-        function generateGameCode() {
-            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let code = '';
-            for (let i = 0; i < 6; i++) {
-                code += characters.charAt(Math.floor(Math.random() * characters.length));
-            }
-            return code;
-        }
-        
+        // Spielerlisten aktualisieren (wie in deinem Original-Code)
         function updateHostPlayerList() {
             hostPlayerList.innerHTML = '';
             gameState.players.forEach(player => {
@@ -553,12 +392,13 @@
             });
         }
         
+        // Spielansicht anzeigen
         function showGameView() {
             hostSection.classList.add('hidden');
             joinSection.classList.add('hidden');
             gameSection.classList.remove('hidden');
             
-            // Display role based on player
+            // Spielerrolle anzeigen
             const playerIndex = gameState.players.indexOf(gameState.currentPlayerName);
             
             playerRoleDisplay.classList.remove('normal-player', 'imposter');
@@ -582,28 +422,30 @@
             updateGamePlayerList();
         }
         
-        // For demonstration purposes only (simulating player join)
-        function simulatePlayersJoining() {
-            // This is just for the demo to show how players would join
-            // In a real app, players would join via network
-            const demoPlayers = ['Anna', 'Ben', 'Carla', 'David', 'Emma'];
-            const playersToAdd = Math.min(parseInt(playerCount.value) - 1, demoPlayers.length);
-            
-            for (let i = 0; i < playersToAdd; i++) {
-                // Add player after a random delay
-                setTimeout(() => {
-                    const newPlayer = demoPlayers[i];
-                    if (!gameState.players.includes(newPlayer)) {
-                        gameState.players.push(newPlayer);
-                        updateHostPlayerList();
-                        
-                        if (gameState.players.length >= 3) {
-                            startGameBtn.classList.remove('hidden');
+        // Auto-Cleanup für inaktive Spiele (optional)
+        window.addEventListener('beforeunload', () => {
+            if (gameState.gameCode) {
+                // Vom Firebase-Listener abmelden
+                database.ref('games/' + gameState.gameCode).off();
+                
+                if (gameState.isHost) {
+                    // Als Host: Spiel löschen
+                    database.ref('games/' + gameState.gameCode).remove();
+                } else {
+                    // Als Spieler: Aus Spielerliste entfernen
+                    database.ref('games/' + gameState.gameCode + '/players').once('value', (snapshot) => {
+                        if (snapshot.exists()) {
+                            const players = snapshot.val();
+                            const index = players.indexOf(gameState.currentPlayerName);
+                            if (index !== -1) {
+                                players.splice(index, 1);
+                                database.ref('games/' + gameState.gameCode + '/players').set(players);
+                            }
                         }
-                    }
-                }, 1000 + Math.random() * 2000);
+                    });
+                }
             }
-        }
+        });
     </script>
 </body>
 </html>
