@@ -609,7 +609,6 @@ joinGameBtn.addEventListener('click', () => {
 
 
         
-        // Spiel starten (Host)
         startGameBtn.addEventListener('click', () => {
             if (!gameState.isHost) return;
             
@@ -621,14 +620,20 @@ joinGameBtn.addEventListener('click', () => {
             // Imposter zufällig auswählen
             const imposterIndex = Math.floor(Math.random() * gameState.players.length);
             
-            // Spiel starten und Imposter setzen
+            // Zufällige Spielerreihenfolge erstellen
+            const playerOrder = createRandomPlayerOrder(gameState.players);
+            
+            // Spiel starten und Imposter sowie Spielerreihenfolge setzen
             database.ref('games/' + gameState.gameCode).update({
                 started: true,
-                imposterIndex: imposterIndex
+                imposterIndex: imposterIndex,
+                playerOrder: playerOrder
             });
             
             gameState.imposterIndex = imposterIndex;
+            gameState.playerOrder = playerOrder;
         });
+        
         
         // Neues Spiel starten
         newGameBtn.addEventListener('click', () => {
@@ -710,6 +715,17 @@ joinGameBtn.addEventListener('click', () => {
                 playerCard.classList.add('player-card');
                 playerCard.textContent = player;
                 gamePlayerList.appendChild(playerCard);
+            });
+        }
+
+        function updatePlayerOrderList() {
+            const playerOrderList = document.getElementById('playerOrderList');
+            playerOrderList.innerHTML = '';
+            
+            gameState.playerOrder.forEach((player, index) => {
+                const li = document.createElement('li');
+                li.textContent = `${index + 1}. ${player}`;
+                playerOrderList.appendChild(li);
             });
         }
 
