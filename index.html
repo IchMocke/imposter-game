@@ -165,28 +165,6 @@
             position: relative;
             color: #666;
         }
-
-        .player-order-section {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 6px;
-        }
-        .player-order-list {
-            padding-left: 25px;
-        }
-        .player-order-list li {
-            margin: 8px 0;
-            padding: 8px 12px;
-            background-color: #e9ecef;
-            border-radius: 4px;
-        }
-        .current-player {
-            background-color: #5865F2 !important;
-            color: white;
-            font-weight: bold;
-        }
-        
     </style>
 </head>
 <body>
@@ -287,13 +265,6 @@
             <div class="player-list" id="gamePlayerList">
                 <!-- Player list will be generated here -->
             </div>
-
-            <div class="player-order-section">
-            <h3>Spielerreihenfolge:</h3>
-            <ol id="playerOrderList" class="player-order-list">
-            <!-- Spielerreihenfolge wird hier angezeigt -->
-            </ol>
-            </div>
             
             <button id="newGameBtn">Neues Spiel</button>
         </div>
@@ -364,7 +335,6 @@
             started: false,
             currentPlayerName: '',
             isHost: false
-            gameState.playerOrder = [];
         };
         
         // DOM Elements
@@ -430,8 +400,6 @@
             }
             return code;
         }
-
-        
         
         // Spiel erstellen (Host)
         createGameBtn.addEventListener('click', () => {
@@ -499,15 +467,6 @@
                     }
                 }
             });
-
-            database.ref('games/' + gameCode + '/playerOrder').on('value', (snapshot) => {
-                if (snapshot.exists()) {
-                    gameState.playerOrder = snapshot.val();
-                    if (gameState.started) {
-                        updatePlayerOrderList();
-                    }
-                }
-            });
             
             // Spielstatus überwachen
             database.ref('games/' + gameCode + '/started').on('value', (snapshot) => {
@@ -549,16 +508,6 @@ joinGameBtn.addEventListener('click', () => {
         alert('Bitte gib den Spiel-Code ein.');
         return;
     }
-
-
-    database.ref('games/' + code + '/playerOrder').on('value', (snapshot) => {
-        if (snapshot.exists()) {
-            gameState.playerOrder = snapshot.val();
-            if (gameState.started) {
-                updatePlayerOrderList();
-            }
-        }
-    });
     
     // Prüfen, ob Spiel existiert
     database.ref('games/' + code).once('value', (snapshot) => {
@@ -628,6 +577,7 @@ joinGameBtn.addEventListener('click', () => {
 
 
         
+        // Spiel starten (Host)
         startGameBtn.addEventListener('click', () => {
             if (!gameState.isHost) return;
             
@@ -639,20 +589,14 @@ joinGameBtn.addEventListener('click', () => {
             // Imposter zufällig auswählen
             const imposterIndex = Math.floor(Math.random() * gameState.players.length);
             
-            // Zufällige Spielerreihenfolge erstellen
-            const playerOrder = createRandomPlayerOrder(gameState.players);
-            
-            // Spiel starten und Imposter sowie Spielerreihenfolge setzen
+            // Spiel starten und Imposter setzen
             database.ref('games/' + gameState.gameCode).update({
                 started: true,
-                imposterIndex: imposterIndex,
-                playerOrder: playerOrder
+                imposterIndex: imposterIndex
             });
             
             gameState.imposterIndex = imposterIndex;
-            gameState.playerOrder = playerOrder;
         });
-        
         
         // Neues Spiel starten
         newGameBtn.addEventListener('click', () => {
@@ -736,30 +680,6 @@ joinGameBtn.addEventListener('click', () => {
                 gamePlayerList.appendChild(playerCard);
             });
         }
-
-        function updatePlayerOrderList() {
-            const playerOrderList = document.getElementById('playerOrderList');
-            playerOrderList.innerHTML = '';
-            
-            gameState.playerOrder.forEach((player, index) => {
-                const li = document.createElement('li');
-                li.textContent = `${index + 1}. ${player}`;
-                playerOrderList.appendChild(li);
-            });
-        }
-
-        function createRandomPlayerOrder(players) {
-            // Kopie der Spielerliste erstellen
-            const shuffledPlayers = [...players];
-            
-            // Fisher-Yates Shuffle Algorithmus
-            for (let i = shuffledPlayers.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffledPlayers[i], shuffledPlayers[j]] = [shuffledPlayers[j], shuffledPlayers[i]];
-            }
-            
-            return shuffledPlayers;
-        }
         
         // Spielansicht anzeigen
         function showGameView() {
@@ -787,13 +707,8 @@ joinGameBtn.addEventListener('click', () => {
                     <p>Beschreibe das Wort, ohne es direkt zu nennen. Versuche den Imposter zu erkennen!</p>
                 `;
             }
-    
-            updateGamePlayerList();
             
-            // Spielerreihenfolge anzeigen, wenn vorhanden
-            if (gameState.playerOrder && gameState.playerOrder.length > 0) {
-                updatePlayerOrderList();
-            }
+            updateGamePlayerList();
         }
         
         // Auto-Cleanup für inaktive Spiele (optional)
