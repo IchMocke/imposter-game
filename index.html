@@ -364,7 +364,6 @@
             started: false,
             currentPlayerName: '',
             isHost: false
-            gameState.playerOrder = [];
         };
         
         // DOM Elements
@@ -594,6 +593,7 @@ joinGameBtn.addEventListener('click', () => {
             database.ref('games/' + code + '/players').on('value', (snapshot) => {
                 if (snapshot.exists()) {
                     gameState.players = snapshot.val();
+                    gameState.playerOrder = [];
                     updateJoinPlayerList();
                 }
             });
