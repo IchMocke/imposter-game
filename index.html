@@ -387,6 +387,26 @@
             joinSection.classList.remove('hidden');
             hostSection.classList.add('hidden');
         });
+
+        // Kategorie-Auswahl
+        const categoryOptions = categorySelect.querySelectorAll('.category-option');
+        categoryOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                categoryOptions.forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+                gameState.category = option.dataset.category;
+            });
+        });
+        
+        // Spielcode generieren
+        function generateGameCode() {
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+            return code;
+        }
         
         // Create game function (Host)
         createGameBtn.addEventListener('click', () => {
@@ -409,11 +429,20 @@
                 alert('Bitte wähle eine Kategorie oder gib ein eigenes Wort ein.');
                 return;
             }
+
+
+
+
+
             
-            // Generate a random game code
-            gameState.gameCode = generateGameCode();
             
-            // Set the word - either custom or random from selected category
+            // Spielcode generieren
+            const gameCode = generateGameCode();
+            gameState.gameCode = gameCode;
+            gameState.currentPlayerName = name;
+            gameState.isHost = true;
+            
+            // Wort festlegen
             if (customWord !== '') {
                 gameState.word = customWord;
             } else {
@@ -421,27 +450,53 @@
                 gameState.word = categoryWords[Math.floor(Math.random() * categoryWords.length)];
             }
             
-            gameState.players = [name]; // Host is first player
-            gameState.currentPlayerName = name;
+            // Spieler hinzufügen
+            gameState.players = [name];
             
-            // Display the game code
-            gameCodeDisplay.textContent = gameState.gameCode;
+            // Spiel in Firebase erstellen
+            database.ref('games/' + gameCode).set({
+                code: gameCode,
+                word: gameState.word,
+                category: gameState.category || 'custom',
+                players: gameState.players,
+                started: false,
+                hostName: name,
+                createdAt: firebase.database.ServerValue.TIMESTAMP
+            });
+            
+            // Host dieser Spielsitzung zuordnen
+            database.ref('games/' + gameCode + '/players').on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    gameState.players = snapshot.val();
+                    updateHostPlayerList();
+                    
+                    if (gameState.players.length >= 3) {
+                        startGameBtn.classList.remove('hidden');
+                    }
+                }
+            });
+            
+            // Spielstatus überwachen
+            database.ref('games/' + gameCode + '/started').on('value', (snapshot) => {
+                if (snapshot.exists() && snapshot.val() === true) {
+                    gameState.started = true;
+                    
+                    // Imposter-Index abrufen
+                    database.ref('games/' + gameCode + '/imposterIndex').once('value', (snapshot) => {
+                        if (snapshot.exists()) {
+                            gameState.imposterIndex = snapshot.val();
+                            showGameView();
+                        }
+                    });
+                }
+            });
+            
+            // Spielcode anzeigen
+            gameCodeDisplay.textContent = gameCode;
             gameCodeSection.classList.remove('hidden');
-            
-            // Update player list
-            updateHostPlayerList();
-            
-            // Show start button when there are enough players
-            if (gameState.players.length >= 3) {
-                startGameBtn.classList.remove('hidden');
-            }
-            
-            // In a real implementation, you would set up server communication here
-            // For demonstration, we'll simulate players joining
-            simulatePlayersJoining();
         });
         
-        // Join game function (Player)
+        // Spiel beitreten (Spieler)
         joinGameBtn.addEventListener('click', () => {
             const name = playerName.value.trim();
             const code = gameCodeInput.value.trim().toUpperCase();
@@ -456,93 +511,145 @@
                 return;
             }
             
-            // Check if game code exists (in a real app, this would be a server check)
-            if (code !== gameState.gameCode) {
-                alert('Ungültiger Spiel-Code. Bitte überprüfe den Code und versuche es erneut.');
-                return;
-            }
-            
-            // Add player to the game
-            if (!gameState.players.includes(name)) {
-                gameState.players.push(name);
-                gameState.currentPlayerName = name;
-                
-                // Show waiting room
-                waitingRoomSection.classList.remove('hidden');
-                updateJoinPlayerList();
-                
-                // If the game has already started, show the game view
-                if (gameState.started) {
-                    showGameView();
+            // Prüfen, ob Spiel existiert
+            database.ref('games/' + code).once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const game = snapshot.val();
+                    
+                    // Prüfen, ob Name bereits verwendet wird
+                    if (game.players && game.players.includes(name)) {
+                        alert('Dieser Name wird bereits verwendet. Bitte wähle einen anderen Namen.');
+                        return;
+                    }
+                    
+                    // Prüfen, ob Spiel bereits gestartet ist
+                    if (game.started) {
+                        alert('Das Spiel hat bereits begonnen. Bitte trete einem anderen Spiel bei.');
+                        return;
+                    }
+                    
+                    // Spieler zum Spiel hinzufügen
+                    gameState.gameCode = code;
+                    gameState.currentPlayerName = name;
+                    
+                    // Spieler zur Spielerliste hinzufügen
+                    const updatedPlayers = game.players ? [...game.players, name] : [name];
+                    database.ref('games/' + code + '/players').set(updatedPlayers);
+                    
+                    // Spielzustand überwachen
+                    database.ref('games/' + code + '/players').on('value', (snapshot) => {
+                        if (snapshot.exists()) {
+                            gameState.players = snapshot.val();
+                            updateJoinPlayerList();
+                        }
+                    });
+                    
+                    // Spielstatus überwachen
+                    database.ref('games/' + code + '/started').on('value', (snapshot) => {
+                        if (snapshot.exists() && snapshot.val() === true) {
+                            gameState.started = true;
+                            
+                            // Spielwort und Imposter-Index abrufen
+                            database.ref('games/' + code).once('value', (snapshot) => {
+                                if (snapshot.exists()) {
+                                    const gameData = snapshot.val();
+                                    gameState.word = gameData.word;
+                                    gameState.imposterIndex = gameData.imposterIndex;
+                                    showGameView();
+                                }
+                            });
+                        }
+                    });
+                    
+                    // Warteraum anzeigen
+                    waitingRoomSection.classList.remove('hidden');
+                } else {
+                    alert('Ungültiger Spiel-Code. Bitte überprüfe den Code und versuche es erneut.');
                 }
-                
-                // Update host view (in a real app, this would be via server)
-                updateHostPlayerList();
-                
-                if (gameState.players.length >= 3) {
-                    startGameBtn.classList.remove('hidden');
-                }
-            } else {
-                alert('Dieser Name wird bereits verwendet. Bitte wähle einen anderen Namen.');
-            }
+            });
         });
         
-        // Start game function
+        // Spiel starten (Host)
         startGameBtn.addEventListener('click', () => {
+            if (!gameState.isHost) return;
+            
             if (gameState.players.length < 3) {
                 alert('Es müssen mindestens 3 Spieler sein, um das Spiel zu starten.');
                 return;
             }
             
-            // Assign imposter randomly
-            gameState.imposterIndex = Math.floor(Math.random() * gameState.players.length);
-            gameState.started = true;
+            // Imposter zufällig auswählen
+            const imposterIndex = Math.floor(Math.random() * gameState.players.length);
             
-            // Show game view for host
-            showGameView();
+            // Spiel starten und Imposter setzen
+            database.ref('games/' + gameState.gameCode).update({
+                started: true,
+                imposterIndex: imposterIndex
+            });
             
-            // In a real app, notify all players that the game has started
-            // For demonstration, we'll just simulate it
-            console.log('Game started! Imposter is:', gameState.players[gameState.imposterIndex]);
+            gameState.imposterIndex = imposterIndex;
         });
         
-        // New game function
+        // Neues Spiel starten
         newGameBtn.addEventListener('click', () => {
-            // Reset game state
+            // Spiel verlassen und zurücksetzen
+            if (gameState.gameCode) {
+                // Vom Firebase-Listener abmelden
+                database.ref('games/' + gameState.gameCode).off();
+                
+                // Wenn Host und keine Spieler mehr da sind, Spiel löschen
+                if (gameState.isHost) {
+                    database.ref('games/' + gameState.gameCode).remove();
+                } else {
+                    // Spieler aus Liste entfernen
+                    database.ref('games/' + gameState.gameCode + '/players').once('value', (snapshot) => {
+                        if (snapshot.exists()) {
+                            const players = snapshot.val();
+                            const index = players.indexOf(gameState.currentPlayerName);
+                            if (index !== -1) {
+                                players.splice(index, 1);
+                                database.ref('games/' + gameState.gameCode + '/players').set(players);
+                            }
+                        }
+                    });
+                }
+            }
+
+            
+            
+            
+            
+            
+            
+            
+            
+            // Gamestate zurücksetzen
             gameState.gameCode = '';
             gameState.word = '';
             gameState.category = '';
             gameState.players = [];
             gameState.imposterIndex = -1;
             gameState.started = false;
+            gameState.isHost = false;
             
-            // Show host section
+            // UI zurücksetzen
             hostSection.classList.remove('hidden');
             joinSection.classList.add('hidden');
             gameSection.classList.add('hidden');
             gameCodeSection.classList.add('hidden');
             waitingRoomSection.classList.add('hidden');
             
-            // Clear inputs and selections
+            // Eingaben und Auswahlen zurücksetzen
             wordInput.value = '';
             gameCodeInput.value = '';
             categoryOptions.forEach(opt => opt.classList.remove('selected'));
             
-            // Reset tabs
+            // Tabs zurücksetzen
             hostTab.classList.add('active');
             joinTab.classList.remove('active');
         });
         
-        // Helper functions
-        function generateGameCode() {
-            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let code = '';
-            for (let i = 0; i < 6; i++) {
-                code += characters.charAt(Math.floor(Math.random() * characters.length));
-            }
-            return code;
-        }
-        
+        // Spielerlisten aktualisieren (wie in deinem Original-Code)
         function updateHostPlayerList() {
             hostPlayerList.innerHTML = '';
             gameState.players.forEach(player => {
@@ -573,12 +680,13 @@
             });
         }
         
+        // Spielansicht anzeigen
         function showGameView() {
             hostSection.classList.add('hidden');
             joinSection.classList.add('hidden');
             gameSection.classList.remove('hidden');
             
-            // Display role based on player
+            // Spielerrolle anzeigen
             const playerIndex = gameState.players.indexOf(gameState.currentPlayerName);
             
             playerRoleDisplay.classList.remove('normal-player', 'imposter');
@@ -602,28 +710,30 @@
             updateGamePlayerList();
         }
         
-        // For demonstration purposes only (simulating player join)
-        function simulatePlayersJoining() {
-            // This is just for the demo to show how players would join
-            // In a real app, players would join via network
-            const demoPlayers = ['Anna', 'Ben', 'Carla', 'David', 'Emma'];
-            const playersToAdd = Math.min(parseInt(playerCount.value) - 1, demoPlayers.length);
-            
-            for (let i = 0; i < playersToAdd; i++) {
-                // Add player after a random delay
-                setTimeout(() => {
-                    const newPlayer = demoPlayers[i];
-                    if (!gameState.players.includes(newPlayer)) {
-                        gameState.players.push(newPlayer);
-                        updateHostPlayerList();
-                        
-                        if (gameState.players.length >= 3) {
-                            startGameBtn.classList.remove('hidden');
+        // Auto-Cleanup für inaktive Spiele (optional)
+        window.addEventListener('beforeunload', () => {
+            if (gameState.gameCode) {
+                // Vom Firebase-Listener abmelden
+                database.ref('games/' + gameState.gameCode).off();
+                
+                if (gameState.isHost) {
+                    // Als Host: Spiel löschen
+                    database.ref('games/' + gameState.gameCode).remove();
+                } else {
+                    // Als Spieler: Aus Spielerliste entfernen
+                    database.ref('games/' + gameState.gameCode + '/players').once('value', (snapshot) => {
+                        if (snapshot.exists()) {
+                            const players = snapshot.val();
+                            const index = players.indexOf(gameState.currentPlayerName);
+                            if (index !== -1) {
+                                players.splice(index, 1);
+                                database.ref('games/' + gameState.gameCode + '/players').set(players);
+                            }
                         }
-                    }
-                }, 1000 + Math.random() * 2000);
+                    });
+                }
             }
-        }
+        });
     </script>
 </body>
 </html>
