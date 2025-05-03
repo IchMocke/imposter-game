@@ -169,11 +169,8 @@
     </style>
 </head>
 <body>
-    <div class="container">
+<div class="container">
         <h1>Imposter Wortspiel</h1>
-        
-        <!-- Deine bestehende HTML-Struktur hier beibehalten -->
-        <!-- ... -->
         
         <div class="tabs">
             <div class="tab active" id="hostTab">Spiel erstellen</div>
@@ -182,18 +179,95 @@
         
         <!-- Host Game Section -->
         <div class="section" id="hostSection">
-            <!-- Der Rest deines bestehenden HTML-Codes -->
-            <!-- ... -->
+            <h2>Neues Spiel erstellen</h2>
+            
+            <div class="form-group">
+                <label for="hostName">Dein Name:</label>
+                <input type="text" id="hostName" placeholder="Dein Name">
+            </div>
+            
+            <div class="form-group">
+                <label for="playerCount">Anzahl der Spieler:</label>
+                <input type="number" id="playerCount" min="3" value="4">
+            </div>
+            
+            <div class="form-group">
+                <label>Wähle eine Kategorie:</label>
+                <div class="category-select" id="categorySelect">
+                    <div class="category-option" data-category="tiere">Tiere</div>
+                    <div class="category-option" data-category="berufe">Berufe</div>
+                    <div class="category-option" data-category="gegenstaende">Gegenstände</div>
+                    <div class="category-option" data-category="orte">Orte</div>
+                    <div class="category-option" data-category="essen">Essen & Trinken</div>
+                </div>
+            </div>
+            
+            <div class="or-divider">
+                <span>ODER</span>
+            </div>
+            
+            <div class="form-group">
+                <label for="wordInput">Eigenes Wort eingeben:</label>
+                <input type="text" id="wordInput" placeholder="z.B. Sonne">
+            </div>
+            
+            <button id="createGameBtn">Spiel erstellen</button>
+            
+            <div class="info-block hidden" id="gameCodeSection">
+                <p>Teile diesen Code mit deinen Mitspielern:</p>
+                <div class="game-code" id="gameCodeDisplay"></div>
+                <p class="small-text">Die Spieler können mit diesem Code dem Spiel beitreten.</p>
+                
+                <h3>Spielerliste:</h3>
+                <div class="player-list" id="hostPlayerList">
+                    <!-- Player list will be generated here -->
+                </div>
+                
+                <button id="startGameBtn" class="hidden">Spiel starten</button>
+            </div>
         </div>
         
-        <!-- Join Game Section -->
+        <!-- Join Game Section (Initially Hidden) -->
         <div class="section hidden" id="joinSection">
-            <!-- ... -->
+            <h2>Einem Spiel beitreten</h2>
+            
+            <div class="form-group">
+                <label for="playerName">Dein Name:</label>
+                <input type="text" id="playerName" placeholder="Dein Name">
+            </div>
+            
+            <div class="form-group">
+                <label for="gameCodeInput">Spiel-Code:</label>
+                <input type="text" id="gameCodeInput" placeholder="z.B. ABC123">
+            </div>
+            
+            <button id="joinGameBtn">Spiel beitreten</button>
+            
+            <div class="info-block hidden" id="waitingRoomSection">
+                <h3>Warte auf Spielstart...</h3>
+                <p>Der Spielleiter wird das Spiel bald starten.</p>
+                
+                <h3>Spielerliste:</h3>
+                <div class="player-list" id="joinPlayerList">
+                    <!-- Player list will be generated here -->
+                </div>
+            </div>
         </div>
         
-        <!-- Game View Section -->
+        <!-- Game View Section (Initially Hidden) -->
         <div class="section hidden" id="gameSection">
-            <!-- ... -->
+            <h2>Spiel läuft</h2>
+            
+            <div class="role-display" id="playerRoleDisplay">
+                <!-- Role will be displayed here -->
+            </div>
+            
+            <h3>Spielerliste:</h3>
+            <div class="player-list" id="gamePlayerList">
+                <!-- Player list will be generated here -->
+            </div>
+            
+            <button id="newGameBtn">Neues Spiel</button>
         </div>
     </div>
 
