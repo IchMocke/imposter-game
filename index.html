@@ -499,6 +499,15 @@
                     }
                 }
             });
+
+            database.ref('games/' + gameCode + '/playerOrder').on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    gameState.playerOrder = snapshot.val();
+                    if (gameState.started) {
+                        updatePlayerOrderList();
+                    }
+                }
+            });
             
             // Spielstatus überwachen
             database.ref('games/' + gameCode + '/started').on('value', (snapshot) => {
@@ -540,6 +549,16 @@ joinGameBtn.addEventListener('click', () => {
         alert('Bitte gib den Spiel-Code ein.');
         return;
     }
+
+
+    database.ref('games/' + code + '/playerOrder').on('value', (snapshot) => {
+        if (snapshot.exists()) {
+            gameState.playerOrder = snapshot.val();
+            if (gameState.started) {
+                updatePlayerOrderList();
+            }
+        }
+    });
     
     // Prüfen, ob Spiel existiert
     database.ref('games/' + code).once('value', (snapshot) => {
@@ -768,8 +787,13 @@ joinGameBtn.addEventListener('click', () => {
                     <p>Beschreibe das Wort, ohne es direkt zu nennen. Versuche den Imposter zu erkennen!</p>
                 `;
             }
-            
+    
             updateGamePlayerList();
+            
+            // Spielerreihenfolge anzeigen, wenn vorhanden
+            if (gameState.playerOrder && gameState.playerOrder.length > 0) {
+                updatePlayerOrderList();
+            }
         }
         
         // Auto-Cleanup für inaktive Spiele (optional)
