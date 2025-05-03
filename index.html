@@ -741,9 +741,9 @@ joinGameBtn.addEventListener('click', () => {
             const playerOrderList = document.getElementById('playerOrderList');
             playerOrderList.innerHTML = '';
             
-            gameState.playerOrder.forEach((player, index) => {
+            gameState.playerOrder.forEach(player => {
                 const li = document.createElement('li');
-                li.textContent = `${index + 1}. ${player}`;
+                li.textContent = player; // Nur den Spielernamen ohne Nummerierung
                 playerOrderList.appendChild(li);
             });
         }
