@@ -272,20 +272,27 @@
 
     <script>
         
-        // Your web app's Firebase configuration
-        const firebaseConfig = {
-          apiKey: "AIzaSyCdEAZokf96Rmb4UfqR6MdCYDmlWlszxTA",
-          authDomain: "imposter-wortspiel.firebaseapp.com",
-          databaseURL: "https://imposter-wortspiel-default-rtdb.europe-west1.firebasedatabase.app",
-          projectId: "imposter-wortspiel",
-          storageBucket: "imposter-wortspiel.firebasestorage.app",
-          messagingSenderId: "661252503301",
-          appId: "1:661252503301:web:57766f2c4faa0b3f08296c"
-        };
-        
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+try {
+    // Firebase-Konfiguration 
+    const firebaseConfig = {
+        apiKey: "AIzaSyCdEAZokf96Rmb4UfqR6MdCYDmlWlszxTA",
+        authDomain: "imposter-wortspiel.firebaseapp.com",
+        databaseURL: "https://imposter-wortspiel-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "imposter-wortspiel",
+        storageBucket: "imposter-wortspiel.firebasestorage.app",
+        messagingSenderId: "661252503301",
+        appId: "1:661252503301:web:57766f2c4faa0b3f08296c"
+    };
+    
+    // Firebase im Kompatibilitätsmodus initialisieren
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    console.log("Firebase erfolgreich initialisiert");
+} catch (error) {
+    console.error("Fehler bei der Firebase-Initialisierung:", error);
+    // Fallback für den lokalen Test ohne Firebase
+    alert("Firebase konnte nicht initialisiert werden. Die App funktioniert möglicherweise nicht vollständig.");
+}
 
         
         // Word categories
