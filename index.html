@@ -186,6 +186,64 @@
             color: white;
             font-weight: bold;
         }
+
+
+
+
+        
+
+        .player-voting-option {
+            padding: 10px;
+            margin: 5px 0;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .player-voting-option:hover {
+            background-color: #d0d7de;
+        }
+        
+        .player-voting-option.selected {
+            background-color: #5865F2;
+            color: white;
+        }
+        
+        #resultSection {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .imposter-reveal {
+            color: #F04747;
+            font-weight: bold;
+        }
+        
+        .word-reveal {
+            color: #43B581;
+            font-weight: bold;
+        }
+        
+        .vote-count {
+            background: #e9ecef;
+            border-radius: 50%;
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            text-align: center;
+            line-height: 24px;
+            margin-left: 10px;
+        }
+
+
+
+
+
+        
+        
         
     </style>
 </head>
@@ -294,6 +352,45 @@
             <!-- Spielerreihenfolge wird hier angezeigt -->
             </ol>
             </div>
+
+            <div class="section" id="votingSection" style="display:none;">
+            <h2>Abstimmungsphase</h2>
+
+
+
+
+                
+            <!-- Für normale Spieler: Abstimmung -->
+            <div id="normalPlayerVoting" style="display:none;">
+                <p>Wer ist deiner Meinung nach der Imposter?</p>
+                <div id="votingPlayerList" class="player-voting-list">
+                    <!-- Wird dynamisch gefüllt -->
+                </div>
+                <p id="voteConfirmation" class="hidden" style="color: green; font-weight: bold;">Deine Stimme wurde gezählt!</p>
+            </div>
+            
+            <!-- Für den Imposter: Wort erraten -->
+            <div id="imposterGuessing" style="display:none;">
+                <p>Errate das geheime Wort:</p>
+                <input type="text" id="wordGuessInput" placeholder="Deine Vermutung...">
+                <button id="submitGuessBtn">Wort einreichen</button>
+                <p id="guessConfirmation" class="hidden" style="color: green; font-weight: bold;">Deine Vermutung wurde gesendet!</p>
+            </div>
+        </div>
+        
+        <div class="section" id="resultSection" style="display:none;">
+            <h2>Spielergebnis</h2>
+            <div id="resultContent">
+                <!-- Wird dynamisch gefüllt -->
+            </div>
+        </div>
+        
+        <button id="endDiscussionBtn" style="display:none;">Diskussion beenden & Abstimmung starten</button>
+
+
+
+
+            
             
             <button id="newGameBtn">Neues Spiel</button>
         </div>
@@ -363,6 +460,10 @@
             imposterIndex: -1,
             started: false,
             currentPlayerName: '',
+            votes: {},
+            wordGuess: '',
+            votingComplete: false,
+            playersVoted: [],
             isHost: false
         };
         
@@ -484,7 +585,10 @@
                 players: gameState.players,
                 started: false,
                 hostName: name,
-                createdAt: firebase.database.ServerValue.TIMESTAMP
+                createdAt: firebase.database.ServerValue.TIMESTAMP,
+                votes: {},          
+                playersVoted: [],   
+                votingPhase: false  
             });
             
             // Host dieser Spielsitzung zuordnen
@@ -688,6 +792,10 @@ joinGameBtn.addEventListener('click', () => {
             gameState.imposterIndex = -1;
             gameState.started = false;
             gameState.isHost = false;
+            gameState.votes = {};
+            gameState.wordGuess = '';
+            gameState.votingComplete = false;
+            gameState.playersVoted = [];
             
             // UI zurücksetzen
             hostSection.classList.remove('hidden');
@@ -695,6 +803,13 @@ joinGameBtn.addEventListener('click', () => {
             gameSection.classList.add('hidden');
             gameCodeSection.classList.add('hidden');
             waitingRoomSection.classList.add('hidden');
+            document.getElementById('votingSection').style.display = 'none';
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('endDiscussionBtn').style.display = 'none';
+            document.getElementById('normalPlayerVoting').style.display = 'none';
+            document.getElementById('imposterGuessing').style.display = 'none';
+            document.getElementById('voteConfirmation').classList.add('hidden');
+            document.getElementById('guessConfirmation').classList.add('hidden');
             
             // Eingaben und Auswahlen zurücksetzen
             wordInput.value = '';
@@ -760,6 +875,10 @@ joinGameBtn.addEventListener('click', () => {
             
             return shuffledPlayers;
         }
+
+
+
+
         
         // Spielansicht anzeigen
         function showGameView() {
@@ -787,14 +906,31 @@ joinGameBtn.addEventListener('click', () => {
                     <p>Beschreibe das Wort, ohne es direkt zu nennen. Versuche den Imposter zu erkennen!</p>
                 `;
             }
-    
+        
             updateGamePlayerList();
             
             // Spielerreihenfolge anzeigen, wenn vorhanden
             if (gameState.playerOrder && gameState.playerOrder.length > 0) {
                 updatePlayerOrderList();
             }
+            
+            // "Diskussion beenden"-Button nur für Host anzeigen
+            if (gameState.isHost) {
+                document.getElementById('endDiscussionBtn').style.display = 'block';
+            }
+            
+            // Abstimmungs- und Ergebnislistener einrichten
+            setupVotingPhaseListener();
+            setupVotingResultsListener();
         }
+
+
+
+
+
+
+
+        
         
         // Auto-Cleanup für inaktive Spiele (optional)
         window.addEventListener('beforeunload', () => {
@@ -820,6 +956,190 @@ joinGameBtn.addEventListener('click', () => {
                 }
             }
         });
+
+
+
+
+
+
+
+
+        // Diskussion beenden und Abstimmung starten
+document.getElementById('endDiscussionBtn').addEventListener('click', () => {
+    if (!gameState.isHost) return;
+    
+    database.ref('games/' + gameState.gameCode).update({
+        votingPhase: true
+    });
+});
+
+// Überwachung der Abstimmungsphase
+function setupVotingPhaseListener() {
+    database.ref('games/' + gameState.gameCode + '/votingPhase').on('value', (snapshot) => {
+        if (snapshot.exists() && snapshot.val() === true) {
+            showVotingSection();
+        }
+    });
+}
+
+// Zeige Abstimmungssektion
+function showVotingSection() {
+    document.getElementById('endDiscussionBtn').style.display = 'none';
+    document.getElementById('votingSection').style.display = 'block';
+    
+    const playerIndex = gameState.players.indexOf(gameState.currentPlayerName);
+    
+    if (playerIndex === gameState.imposterIndex) {
+        // Imposter sieht Ratefeld
+        document.getElementById('imposterGuessing').style.display = 'block';
+    } else {
+        // Normale Spieler sehen Abstimmungsoptionen
+        document.getElementById('normalPlayerVoting').style.display = 'block';
+        populateVotingOptions();
+    }
+}
+
+// Abstimmungsoptionen anzeigen
+function populateVotingOptions() {
+    const votingList = document.getElementById('votingPlayerList');
+    votingList.innerHTML = '';
+    
+    gameState.players.forEach(player => {
+        if (player !== gameState.currentPlayerName) { // Nicht für sich selbst stimmen
+            const option = document.createElement('div');
+            option.classList.add('player-voting-option');
+            option.textContent = player;
+            option.dataset.player = player;
+            
+            option.addEventListener('click', () => {
+                // Vorherige Auswahl entfernen
+                document.querySelectorAll('.player-voting-option.selected').forEach(el => {
+                    el.classList.remove('selected');
+                });
+                
+                // Neue Auswahl markieren
+                option.classList.add('selected');
+                
+                // Stimme in Firebase speichern
+                const voteRef = database.ref('games/' + gameState.gameCode + '/votes/' + gameState.currentPlayerName);
+                voteRef.set(player);
+                
+                // Abstimmungsbestätigung anzeigen
+                document.getElementById('voteConfirmation').classList.remove('hidden');
+                
+                // Spieler zur Liste der abgestimmten Spieler hinzufügen
+                database.ref('games/' + gameState.gameCode + '/playersVoted').once('value', (snapshot) => {
+                    let playersVoted = [];
+                    if (snapshot.exists()) {
+                        playersVoted = snapshot.val();
+                    }
+                    
+                    if (!playersVoted.includes(gameState.currentPlayerName)) {
+                        playersVoted.push(gameState.currentPlayerName);
+                        database.ref('games/' + gameState.gameCode + '/playersVoted').set(playersVoted);
+                    }
+                });
+            });
+            
+            votingList.appendChild(option);
+        }
+    });
+}
+
+// Imposter-Rateversuch
+document.getElementById('submitGuessBtn').addEventListener('click', () => {
+    const wordGuess = document.getElementById('wordGuessInput').value.trim();
+    
+    if (wordGuess === '') {
+        alert('Bitte gib eine Vermutung ein!');
+        return;
+    }
+    
+    // Vermutung in Firebase speichern
+    database.ref('games/' + gameState.gameCode + '/wordGuess').set(wordGuess);
+    
+    // Bestätigung anzeigen
+    document.getElementById('guessConfirmation').classList.remove('hidden');
+    document.getElementById('submitGuessBtn').disabled = true;
+    
+    // Imposter zur Liste der abgestimmten Spieler hinzufügen
+    database.ref('games/' + gameState.gameCode + '/playersVoted').once('value', (snapshot) => {
+        let playersVoted = [];
+        if (snapshot.exists()) {
+            playersVoted = snapshot.val();
+        }
+        
+        if (!playersVoted.includes(gameState.currentPlayerName)) {
+            playersVoted.push(gameState.currentPlayerName);
+            database.ref('games/' + gameState.gameCode + '/playersVoted').set(playersVoted);
+        }
+    });
+});
+
+// Überwachung der Abstimmungsergebnisse
+function setupVotingResultsListener() {
+    database.ref('games/' + gameState.gameCode + '/playersVoted').on('value', (snapshot) => {
+        if (snapshot.exists()) {
+            const playersVoted = snapshot.val();
+            
+            // Wenn alle Spieler abgestimmt haben
+            if (playersVoted.length === gameState.players.length) {
+                showResults();
+            }
+        }
+    });
+}
+
+// Ergebnisse anzeigen
+function showResults() {
+    document.getElementById('votingSection').style.display = 'none';
+    document.getElementById('resultSection').style.display = 'block';
+    
+    // Abstimmungsergebnisse und Imposter-Vermutung abrufen
+    database.ref('games/' + gameState.gameCode).once('value', (snapshot) => {
+        if (snapshot.exists()) {
+            const gameData = snapshot.val();
+            const votes = gameData.votes || {};
+            const wordGuess = gameData.wordGuess || "nichts geraten";
+            const imposter = gameState.players[gameState.imposterIndex];
+            
+            // Stimmen zählen
+            const voteCounts = {};
+            Object.values(votes).forEach(vote => {
+                voteCounts[vote] = (voteCounts[vote] || 0) + 1;
+            });
+            
+            // Ergebnisse anzeigen
+            const resultContent = document.getElementById('resultContent');
+            
+            let resultHTML = `
+                <p>Der <span class="imposter-reveal">Imposter</span> war: <strong>${imposter}</strong></p>
+                <p>Das geheime Wort war: <span class="word-reveal">${gameState.word}</span></p>
+                <p>Der Imposter hat geraten: <strong>${wordGuess}</strong></p>
+                <h3>Abstimmungsergebnisse:</h3>
+                <ul>
+            `;
+            
+            // Spieler sortieren nach Stimmenzahl
+            const sortedPlayers = Object.keys(voteCounts).sort((a, b) => voteCounts[b] - voteCounts[a]);
+            
+            sortedPlayers.forEach(player => {
+                resultHTML += `<li>${player} <span class="vote-count">${voteCounts[player]}</span></li>`;
+            });
+            
+            resultHTML += `</ul>`;
+            resultContent.innerHTML = resultHTML;
+        }
+    });
+}
+
+
+        
+
+
+
+
+        
     </script>
 </body>
 </html>
