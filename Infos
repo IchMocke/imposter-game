@@ -1,3 +1,6 @@
 Direkt neues Game ohne neue Lobby zu erstellen 
 Punktesystem: Spieler sollen den angeblichen Imposter auswählen können; Imposter soll Wort erraten können
 neue Kategorien
+
+Bugs to fix:
+- Wenn das game vorbei ist und man auf Spiel beitreten drückt, kann man in mehrere games beitreten. (Fix durch Reset des Clients nach Beendigung des Spiels)
