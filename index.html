@@ -941,9 +941,8 @@ joinGameBtn.addEventListener('click', () => {
             gameState.wordGuess = '';
             gameState.votingComplete = false;
             gameState.playersVoted = [];
-            gameState.word = newWord; // Neues Wort im lokalen Status speichern
+            gameState.word = newWord; // Wichtig: Neues Wort im lokalen Status speichern
             gameState.imposterIndex = -1; // Zurücksetzen des Imposter-Index
-            gameState.category = ''; // Zurücksetzen der Kategorie
             
             // UI für Host zurücksetzen
             gameSection.classList.add('hidden');
@@ -967,8 +966,7 @@ joinGameBtn.addEventListener('click', () => {
                 votingPhase: false,
                 wordGuess: null,
                 word: newWord, // Wichtig: Neues Wort in Firebase aktualisieren
-                imposterIndex: null. // Imposter-Index zurücksetzen
-                category: gameState.category || 'custom' // Kategorie aktualisieren
+                imposterIndex: null // Imposter-Index zurücksetzen
             });
         });
         
