@@ -943,6 +943,7 @@ joinGameBtn.addEventListener('click', () => {
             gameState.playersVoted = [];
             gameState.word = newWord; // Wichtig: Neues Wort im lokalen Status speichern
             gameState.imposterIndex = -1; // Zurücksetzen des Imposter-Index
+            gameState.category = ''; // Zurücksetzen der Kategorie
             
             // UI für Host zurücksetzen
             gameSection.classList.add('hidden');
@@ -952,6 +953,9 @@ joinGameBtn.addEventListener('click', () => {
             document.getElementById('imposterGuessing').style.display = 'none';
             document.getElementById('voteConfirmation').classList.add('hidden');
             document.getElementById('guessConfirmation').classList.add('hidden');
+
+            // Kategorie-Auswahl zurücksetzen
+            categoryOptions.forEach(opt => opt.classList.remove('selected'));
             
             // Host-Interface mit Spielern anzeigen
             hostSection.classList.remove('hidden');
@@ -966,7 +970,8 @@ joinGameBtn.addEventListener('click', () => {
                 votingPhase: false,
                 wordGuess: null,
                 word: newWord, // Wichtig: Neues Wort in Firebase aktualisieren
-                imposterIndex: null // Imposter-Index zurücksetzen
+                imposterIndex: null, // Imposter-Index zurücksetzen
+                category: gameState.category || 'custom' // Kategorie aktualisieren
             });
         });
         
