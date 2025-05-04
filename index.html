@@ -1069,7 +1069,6 @@ joinGameBtn.addEventListener('click', () => {
             if (playerIndex === gameState.imposterIndex) {
                 playerRoleDisplay.classList.add('imposter');
                 playerRoleDisplay.innerHTML = `
-                    <p>Die Kategorie ist: <span class="word-display">${gameState.category}</span></p>
                     <p>Du bist der <strong>IMPOSTER</strong>!</p>
                     <p>Alle anderen Spieler kennen ein geheimes Wort, das du erraten musst.</p>
                     <p>Höre gut zu und versuche nicht aufzufallen!</p>
@@ -1077,7 +1076,6 @@ joinGameBtn.addEventListener('click', () => {
             } else {
                 playerRoleDisplay.classList.add('normal-player');
                 playerRoleDisplay.innerHTML = `
-                    <p>Die Kategorie ist: <span class="word-display">${gameState.category}</span></p>
                     <p>Du bist ein <strong>normaler Spieler</strong>!</p>
                     <p>Das geheime Wort ist: <span class="word-display">${gameState.word}</span></p>
                     <p>Beschreibe das Wort, ohne es direkt zu nennen. Versuche den Imposter zu erkennen!</p>
