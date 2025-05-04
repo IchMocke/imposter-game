@@ -733,94 +733,97 @@
 
 
         
-// Spiel beitreten (Spieler)
-joinGameBtn.addEventListener('click', () => {
-    const name = playerName.value.trim();
-    const code = gameCodeInput.value.trim().toUpperCase();
-    
-    if (name === '') {
-        alert('Bitte gib deinen Namen ein.');
-        return;
-    }
-    
-    if (code === '') {
-        alert('Bitte gib den Spiel-Code ein.');
-        return;
-    }
-
-
-    database.ref('games/' + code + '/playerOrder').on('value', (snapshot) => {
-        if (snapshot.exists()) {
-            gameState.playerOrder = snapshot.val();
-            if (gameState.started) {
-                updatePlayerOrderList();
-            }
-        }
-    });
-    
-    // Prüfen, ob Spiel existiert
-    database.ref('games/' + code).once('value', (snapshot) => {
-        if (snapshot.exists()) {
-            const game = snapshot.val();
+        // Spiel beitreten (Spieler) - Fehlerbehebung
+        joinGameBtn.addEventListener('click', () => {
+            const name = playerName.value.trim();
+            const code = gameCodeInput.value.trim().toUpperCase();
             
-            // Prüfen, ob Name bereits verwendet wird
-            if (game.players && game.players.includes(name)) {
-                alert('Dieser Name wird bereits verwendet. Bitte wähle einen anderen Namen.');
+            if (name === '') {
+                alert('Bitte gib deinen Namen ein.');
                 return;
             }
             
-            // Prüfen, ob Spiel bereits gestartet ist
-            if (game.started) {
-                alert('Das Spiel hat bereits begonnen. Bitte trete einem anderen Spiel bei.');
+            if (code === '') {
+                alert('Bitte gib den Spiel-Code ein.');
                 return;
             }
-            
-            // Spieler zum Spiel hinzufügen
-            gameState.gameCode = code;
-            gameState.currentPlayerName = name;
-            
-            // Spielerliste für Spieler initialisieren
-            gameState.players = game.players || [];
-            if (!gameState.players.includes(name)) {
-                gameState.players.push(name);
-            }
-            
-            // Spieler zur Spielerliste in Firebase hinzufügen
-            database.ref('games/' + code + '/players').set(gameState.players);
-            
-            // Spielzustand überwachen
-            database.ref('games/' + code + '/players').on('value', (snapshot) => {
+        
+            database.ref('games/' + code + '/playerOrder').on('value', (snapshot) => {
                 if (snapshot.exists()) {
-                    gameState.players = snapshot.val();
-                    gameState.playerOrder = [];
-                    updateJoinPlayerList();
+                    gameState.playerOrder = snapshot.val();
+                    if (gameState.started) {
+                        updatePlayerOrderList();
+                    }
                 }
             });
             
-            // Spielstatus überwachen
-            database.ref('games/' + code + '/started').on('value', (snapshot) => {
-                if (snapshot.exists() && snapshot.val() === true) {
-                    gameState.started = true;
+            // Prüfen, ob Spiel existiert
+            database.ref('games/' + code).once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const game = snapshot.val();
                     
-                    // Spielwort und Imposter-Index abrufen
-                    database.ref('games/' + code).once('value', (snapshot) => {
+                    // Prüfen, ob Name bereits verwendet wird
+                    if (game.players && game.players.includes(name)) {
+                        alert('Dieser Name wird bereits verwendet. Bitte wähle einen anderen Namen.');
+                        return;
+                    }
+                    
+                    // Prüfen, ob Spiel bereits gestartet ist
+                    if (game.started) {
+                        alert('Das Spiel hat bereits begonnen. Bitte trete einem anderen Spiel bei.');
+                        return;
+                    }
+                    
+                    // Spieler zum Spiel hinzufügen
+                    gameState.gameCode = code;
+                    gameState.currentPlayerName = name;
+                    
+                    // WICHTIG: Kategorie vom Spiel abrufen und lokal speichern
+                    gameState.category = game.category;
+                    
+                    // Spielerliste für Spieler initialisieren
+                    gameState.players = game.players || [];
+                    if (!gameState.players.includes(name)) {
+                        gameState.players.push(name);
+                    }
+                    
+                    // Spieler zur Spielerliste in Firebase hinzufügen
+                    database.ref('games/' + code + '/players').set(gameState.players);
+                    
+                    // Spielzustand überwachen
+                    database.ref('games/' + code + '/players').on('value', (snapshot) => {
                         if (snapshot.exists()) {
-                            const gameData = snapshot.val();
-                            gameState.word = gameData.word;
-                            gameState.imposterIndex = gameData.imposterIndex;
-                            showGameView();
+                            gameState.players = snapshot.val();
+                            gameState.playerOrder = [];
+                            updateJoinPlayerList();
                         }
                     });
+                    
+                    // Spielstatus überwachen
+                    database.ref('games/' + code + '/started').on('value', (snapshot) => {
+                        if (snapshot.exists() && snapshot.val() === true) {
+                            gameState.started = true;
+                            
+                            // Spielwort, Kategorie und Imposter-Index abrufen
+                            database.ref('games/' + code).once('value', (snapshot) => {
+                                if (snapshot.exists()) {
+                                    const gameData = snapshot.val();
+                                    gameState.word = gameData.word;
+                                    gameState.category = gameData.category; // Kategorie aktualisieren
+                                    gameState.imposterIndex = gameData.imposterIndex;
+                                    showGameView();
+                                }
+                            });
+                        }
+                    });
+                    
+                    // Warteraum anzeigen
+                    waitingRoomSection.classList.remove('hidden');
+                } else {
+                    alert('Ungültiger Spiel-Code. Bitte überprüfe den Code und versuche es erneut.');
                 }
             });
-            
-            // Warteraum anzeigen
-            waitingRoomSection.classList.remove('hidden');
-        } else {
-            alert('Ungültiger Spiel-Code. Bitte überprüfe den Code und versuche es erneut.');
-        }
-    });
-});
+        });
 
 
 
