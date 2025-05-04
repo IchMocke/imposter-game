@@ -366,11 +366,11 @@
             <div class="form-group">
                 <label>Wähle eine Kategorie:</label>
                 <div class="category-select" id="categorySelect">
-                    <div class="category-option" data-category="tiere">Tiere</div>
-                    <div class="category-option" data-category="berufe">Berufe</div>
-                    <div class="category-option" data-category="gegenstaende">Gegenstände</div>
-                    <div class="category-option" data-category="orte">Orte</div>
-                    <div class="category-option" data-category="essen">Essen & Trinken</div>
+                    <div class="category-option" data-category="Tiere">Tiere</div>
+                    <div class="category-option" data-category="Berufe">Berufe</div>
+                    <div class="category-option" data-category="Gegenstaende">Gegenstände</div>
+                    <div class="category-option" data-category="Orte">Orte</div>
+                    <div class="category-option" data-category="Essen">Essen & Trinken</div>
                 </div>
             </div>
             
@@ -514,31 +514,31 @@
         
         // Word categories
         const wordCategories = {
-            tiere: [
+            Tiere: [
                 "Elefant", "Pinguin", "Giraffe", "Löwe", "Tiger", "Zebra", "Känguru", "Nashorn", 
                 "Koala", "Panda", "Delfin", "Wal", "Hai", "Frosch", "Schildkröte", "Adler", 
                 "Papagei", "Flamingo", "Krokodil", "Gorilla", "Eisbär", "Wolf", "Fuchs", 
                 "Igel", "Eichhörnchen", "Biber", "Otter", "Fledermaus"
             ],
-            berufe: [
+            Berufe: [
                 "Arzt", "Lehrer", "Koch", "Feuerwehrmann", "Polizist", "Pilot", "Architekt", 
                 "Designer", "Programmierer", "Schauspieler", "Musiker", "Künstler", "Anwalt", 
                 "Richter", "Journalist", "Fotograf", "Bäcker", "Gärtner", "Tischler", "Elektriker", 
                 "Friseur", "Mechaniker", "Schneider", "Zahnarzt", "Tierarzt", "Krankenpfleger"
             ],
-            gegenstaende: [
+            Gegenstaende: [
                 "Stuhl", "Tisch", "Lampe", "Uhr", "Buch", "Stift", "Handy", "Computer", "Fernseher", 
                 "Kamera", "Brille", "Schlüssel", "Tasche", "Schirm", "Geldbörse", "Schere", "Tasse", 
                 "Flasche", "Messer", "Gabel", "Löffel", "Teller", "Vase", "Kissen", "Decke", "Spiegel", 
                 "Kerze", "Bild", "Ring", "Kette", "Mütze", "Schal"
             ],
-            orte: [
+            Orte: [
                 "Strand", "Berg", "Wald", "Wüste", "Insel", "Stadt", "Dorf", "Park", "Zoo", "Museum", 
                 "Kino", "Theater", "Restaurant", "Café", "Bahnhof", "Flughafen", "Hafen", "Schule", 
                 "Universität", "Krankenhaus", "Hotel", "Supermarkt", "Bibliothek", "Schwimmbad", 
                 "Fitnessstudio", "Büro", "Fabrik", "Bauernhof", "Schloss", "Kirche"
             ],
-            essen: [
+            Essen: [
                 "Pizza", "Burger", "Pasta", "Sushi", "Schokolade", "Eis", "Kuchen", "Brot", "Käse", 
                 "Suppe", "Salat", "Steak", "Fisch", "Hühnchen", "Reis", "Kartoffel", "Apfel", "Banane", 
                 "Orange", "Erdbeere", "Tomate", "Gurke", "Karotte", "Kaffee", "Tee", "Saft", "Wasser", 
@@ -919,57 +919,58 @@ joinGameBtn.addEventListener('click', () => {
 
 
         // Neue Runde starten EventListener
-        document.getElementById('startNewRoundBtn').addEventListener('click', () => {
-            if (!gameState.isHost) return;
-            
-            // Lokalen Spielzustand vollständig zurücksetzen
-            gameState.started = false;
-            gameState.votes = {};
-            gameState.wordGuess = '';
-            gameState.votingComplete = false;
-            gameState.playersVoted = [];
-            gameState.imposterIndex = -1;
-            gameState.playerOrder = [];
-            gameState.category = ''; // Wichtig: Kategorie zurücksetzen
-            
-            // UI-Elemente vollständig zurücksetzen
-            gameSection.classList.add('hidden');
-            document.getElementById('votingSection').style.display = 'none';
-            document.getElementById('resultSection').style.display = 'none';
-            document.getElementById('normalPlayerVoting').style.display = 'none';
-            document.getElementById('imposterGuessing').style.display = 'none';
-            document.getElementById('voteConfirmation').classList.add('hidden');
-            document.getElementById('guessConfirmation').classList.add('hidden');
-            document.getElementById('submitGuessBtn').disabled = false; // Button wieder aktivieren
-            document.getElementById('wordGuessInput').value = ''; // Rateeingabe leeren
-            document.getElementById('endDiscussionBtn').style.display = 'none'; // Diskussionsbutton ausblenden
-            document.getElementById('startNewRoundBtn').classList.add('hidden'); // "Neue Runde"-Button ausblenden
-            
-            // Host-Interface mit Spielern anzeigen
-            hostSection.classList.remove('hidden');
-            gameCodeSection.classList.remove('hidden');
-            startGameBtn.classList.remove('hidden');
-            
-            // Alle Kategorie-Optionen zurücksetzen
-            categoryOptions.forEach(opt => opt.classList.remove('selected'));
-            wordInput.value = ''; // Eigenes Wort-Eingabefeld leeren
-            
-            // Firebase vollständig zurücksetzen mit eindeutigen null-Werten
-            database.ref('games/' + gameState.gameCode).update({
-                started: false,
-                votes: null,
-                playersVoted: [],
-                votingPhase: false,
-                wordGuess: null,
-                imposterIndex: null,
-                playerOrder: null,
-                category: null,  // Kategorie komplett zurücksetzen
-                word: null       // Wort komplett zurücksetzen
-            });
-            
-            // Spielerliste für Host aktualisieren zeigen
-            updateHostPlayerList();
-        });
+                document.getElementById('startNewRoundBtn').addEventListener('click', () => {
+                    if (!gameState.isHost) return;
+                    
+                    // Lokalen Spielzustand vollständig zurücksetzen
+                    gameState.started = false;
+                    gameState.votes = {};
+                    gameState.wordGuess = '';
+                    gameState.votingComplete = false;
+                    gameState.playersVoted = [];
+                    gameState.imposterIndex = -1;
+                    gameState.playerOrder = [];
+                    gameState.category = ''; // Wichtig: Kategorie zurücksetzen
+                    gameState.word = ''; // Wichtig: Wort zurücksetzen
+                    
+                    // UI-Elemente vollständig zurücksetzen
+                    gameSection.classList.add('hidden');
+                    document.getElementById('votingSection').style.display = 'none';
+                    document.getElementById('resultSection').style.display = 'none';
+                    document.getElementById('normalPlayerVoting').style.display = 'none';
+                    document.getElementById('imposterGuessing').style.display = 'none';
+                    document.getElementById('voteConfirmation').classList.add('hidden');
+                    document.getElementById('guessConfirmation').classList.add('hidden');
+                    document.getElementById('submitGuessBtn').disabled = false; // Button wieder aktivieren
+                    document.getElementById('wordGuessInput').value = ''; // Rateeingabe leeren
+                    document.getElementById('endDiscussionBtn').style.display = 'none'; // Diskussionsbutton ausblenden
+                    document.getElementById('startNewRoundBtn').classList.add('hidden'); // "Neue Runde"-Button ausblenden
+                    
+                    // Host-Interface mit Spielern anzeigen
+                    hostSection.classList.remove('hidden');
+                    gameCodeSection.classList.remove('hidden');
+                    startGameBtn.classList.remove('hidden');
+                    
+                    // Alle Kategorie-Optionen zurücksetzen
+                    categoryOptions.forEach(opt => opt.classList.remove('selected'));
+                    wordInput.value = ''; // Eigenes Wort-Eingabefeld leeren
+                    
+                    // Firebase vollständig zurücksetzen mit eindeutigen null-Werten
+                    database.ref('games/' + gameState.gameCode).update({
+                        started: false,
+                        votes: null,
+                        playersVoted: [],
+                        votingPhase: false,
+                        wordGuess: null,
+                        imposterIndex: null,
+                        playerOrder: null,
+                        category: null,  // Kategorie komplett zurücksetzen
+                        word: null       // Wort komplett zurücksetzen
+                    });
+                    
+                    // Spielerliste für Host aktualisieren zeigen
+                    updateHostPlayerList();
+                });
         
 
 
@@ -1051,6 +1052,7 @@ joinGameBtn.addEventListener('click', () => {
                 playerRoleDisplay.classList.add('imposter');
                 playerRoleDisplay.innerHTML = `
                     <p>Du bist der <strong>IMPOSTER</strong>!</p>
+                    <p>Das geheime Wort ist: <span class="word-display">${gameState.category}</span></p>
                     <p>Alle anderen Spieler kennen ein geheimes Wort, das du erraten musst.</p>
                     <p>Höre gut zu und versuche nicht aufzufallen!</p>
                 `;
