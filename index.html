@@ -313,6 +313,20 @@
         transform: scale(1.1);
     }
 
+
+    #startNewRoundBtn {
+        margin-top: 20px;
+        background-color: var(--normal-player-bg);
+    }
+    
+    #startNewRoundBtn:hover {
+        background-color: #36A46E;
+    }
+
+
+
+        
+
     @media (max-width: 600px) {
         .theme-toggle {
             top: 10px;
@@ -320,7 +334,9 @@
             width: 35px;
             height: 35px;
         }
-    }        
+    }
+
+        
     </style>
    
 </head>
@@ -465,6 +481,7 @@
             <div id="resultContent">
                 <!-- Wird dynamisch gefüllt -->
             </div>
+            <button id="startNewRoundBtn" class="hidden">Neue Runde starten</button>
         </div>
         
         <button id="endDiscussionBtn" style="display:none;">Diskussion beenden & Abstimmung starten</button>
@@ -865,6 +882,49 @@ joinGameBtn.addEventListener('click', () => {
                 }
             }
 
+
+
+        document.getElementById('startNewRoundBtn').addEventListener('click', () => {
+            if (!gameState.isHost) return;
+            
+            // Spielzustand teilweise zurücksetzen
+            gameState.started = false;
+            gameState.votes = {};
+            gameState.wordGuess = '';
+            gameState.votingComplete = false;
+            gameState.playersVoted = [];
+            
+            // UI für Host zurücksetzen
+            gameSection.classList.add('hidden');
+            document.getElementById('votingSection').style.display = 'none';
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('normalPlayerVoting').style.display = 'none';
+            document.getElementById('imposterGuessing').style.display = 'none';
+            document.getElementById('voteConfirmation').classList.add('hidden');
+            document.getElementById('guessConfirmation').classList.add('hidden');
+            
+            // Host-Interface mit Spielern anzeigen
+            hostSection.classList.remove('hidden');
+            gameCodeSection.classList.remove('hidden');
+            startGameBtn.classList.remove('hidden');
+            
+            // Firebase zurücksetzen
+            database.ref('games/' + gameState.gameCode).update({
+                started: false,
+                votes: {},
+                playersVoted: [],
+                votingPhase: false,
+                wordGuess: null
+            });
+            
+            // Kategorie zurücksetzen und Eingabefeld leeren
+            wordInput.value = '';
+            categoryOptions.forEach(opt => opt.classList.remove('selected'));
+            gameState.category = '';
+        });
+
+
+    
             
 // Gamestate zurücksetzen
             gameState.gameCode = '';
@@ -1168,6 +1228,33 @@ function setupVotingResultsListener() {
             if (playersVoted.length === gameState.players.length) {
                 showResults();
             }
+
+
+        // Überwachen, ob eine neue Runde gestartet wird
+        database.ref('games/' + gameState.gameCode + '/started').on('value', (snapshot) => {
+            if (snapshot.exists() && snapshot.val() === false && gameState.started === true) {
+                // Zurück in den Warteraum, wenn der Host eine neue Runde startet
+                if (!gameState.isHost) {
+                    gameSection.classList.add('hidden');
+                    document.getElementById('votingSection').style.display = 'none';
+                    document.getElementById('resultSection').style.display = 'none';
+                    joinSection.classList.remove('hidden');
+                    waitingRoomSection.classList.remove('hidden');
+                    
+                    // Zustand zurücksetzen
+                    gameState.started = false;
+                    gameState.votes = {};
+                    gameState.wordGuess = '';
+                    gameState.votingComplete = false;
+                    gameState.playersVoted = [];
+                }
+            }
+        });
+
+
+
+
+            
         }
     });
 }
@@ -1213,6 +1300,12 @@ function showResults() {
             resultContent.innerHTML = resultHTML;
         }
     });
+
+    
+        if (gameState.isHost) {
+        document.getElementById('startNewRoundBtn').classList.remove('hidden');
+    }
+    
 }
 
 
