@@ -918,30 +918,16 @@ joinGameBtn.addEventListener('click', () => {
 
 
 
+        //Neuer Event Listener
         document.getElementById('startNewRoundBtn').addEventListener('click', () => {
             if (!gameState.isHost) return;
             
-            // Neues Wort auswählen, falls eine Kategorie ausgewählt ist
-            let newWord = '';
-            if (gameState.category && gameState.category !== 'custom') {
-                const categoryWords = wordCategories[gameState.category];
-                newWord = categoryWords[Math.floor(Math.random() * categoryWords.length)];
-            } else if (wordInput.value.trim() !== '') {
-                // Benutzerdefiniertes Wort verwenden, wenn verfügbar
-                newWord = wordInput.value.trim();
-            } else {
-                // Behalte das aktuelle Wort bei, wenn keine neue Quelle verfügbar ist
-                newWord = gameState.word;
-            }
-            
-            // Spielzustand vollständig zurücksetzen
+            // Spielzustand teilweise zurücksetzen
             gameState.started = false;
             gameState.votes = {};
             gameState.wordGuess = '';
             gameState.votingComplete = false;
             gameState.playersVoted = [];
-            gameState.word = newWord; // Wichtig: Neues Wort im lokalen Status speichern
-            gameState.imposterIndex = -1; // Zurücksetzen des Imposter-Index
             
             // UI für Host zurücksetzen
             gameSection.classList.add('hidden');
@@ -957,17 +943,37 @@ joinGameBtn.addEventListener('click', () => {
             gameCodeSection.classList.remove('hidden');
             startGameBtn.classList.remove('hidden');
             
-            // Firebase vollständig zurücksetzen
+            // Firebase zurücksetzen
             database.ref('games/' + gameState.gameCode).update({
                 started: false,
                 votes: {},
                 playersVoted: [],
                 votingPhase: false,
-                wordGuess: null,
-                word: newWord, // Wichtig: Neues Wort in Firebase aktualisieren
-                imposterIndex: null // Imposter-Index zurücksetzen
+                wordGuess: null
             });
+            
+            // Kategorie zurücksetzen und Eingabefeld leeren
+            wordInput.value = '';
+            categoryOptions.forEach(opt => opt.classList.remove('selected'));
+            gameState.category = '';
         });
+        
+
+
+
+
+        
+        
+        // Spielerlisten aktualisieren (wie in deinem Original-Code)
+        function updateHostPlayerList() {
+            hostPlayerList.innerHTML = '';
+            gameState.players.forEach(player => {
+                const playerCard = document.createElement('div');
+                playerCard.classList.add('player-card');
+                playerCard.textContent = player;
+                hostPlayerList.appendChild(playerCard);
+            });
+        }
         
         function updateJoinPlayerList() {
             joinPlayerList.innerHTML = '';
