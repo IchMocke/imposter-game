@@ -946,7 +946,7 @@ joinGameBtn.addEventListener('click', () => {
                     newWord = gameState.word;
                 }
                 
-                // Spielzustand vollständig zurücksetzen
+                // Lokalen Spielzustand vollständig zurücksetzen
                 gameState.started = false;
                 gameState.votes = {};
                 gameState.wordGuess = '';
@@ -954,8 +954,9 @@ joinGameBtn.addEventListener('click', () => {
                 gameState.playersVoted = [];
                 gameState.word = newWord; // Wichtig: Neues Wort im lokalen Status speichern
                 gameState.imposterIndex = -1; // Zurücksetzen des Imposter-Index
+                gameState.playerOrder = []; // Vollständiges Zurücksetzen der Spielerreihenfolge 
                 
-                // UI für Host zurücksetzen
+                // UI-Elemente vollständig zurücksetzen
                 gameSection.classList.add('hidden');
                 document.getElementById('votingSection').style.display = 'none';
                 document.getElementById('resultSection').style.display = 'none';
@@ -965,24 +966,25 @@ joinGameBtn.addEventListener('click', () => {
                 document.getElementById('guessConfirmation').classList.add('hidden');
                 document.getElementById('submitGuessBtn').disabled = false; // Button wieder aktivieren
                 document.getElementById('wordGuessInput').value = ''; // Rateeingabe leeren
+                document.getElementById('endDiscussionBtn').style.display = 'none'; // Diskussionsbutton ausblenden
+                document.getElementById('startNewRoundBtn').classList.add('hidden'); // "Neue Runde"-Button ausblenden
                 
                 // Host-Interface mit Spielern anzeigen
                 hostSection.classList.remove('hidden');
                 gameCodeSection.classList.remove('hidden');
                 startGameBtn.classList.remove('hidden');
                 
-                // Firebase vollständig zurücksetzen - mit verbesserter Struktur
+                // Firebase vollständig zurücksetzen mit eindeutigen null-Werten
                 database.ref('games/' + gameState.gameCode).update({
                     started: false,
-                    votes: {},
+                    votes: null, // Explizit null setzen statt leeres Objekt
                     playersVoted: [],
                     votingPhase: false,
                     wordGuess: null,
                     word: newWord, // Wichtig: Neues Wort in Firebase aktualisieren
                     imposterIndex: null, // Imposter-Index zurücksetzen
-                    // Behalte die aktuelle Kategorie bei
-                    category: currentCategory || 'custom',
-                    playerOrder: null // Spielerreihenfolge zurücksetzen
+                    playerOrder: null // Spielerreihenfolge explizit auf null setzen
+                    // Die aktuelle Kategorie und Spielerliste bleibt erhalten
                 });
                 
                 // Ausgewählte Kategorie in der UI anzeigen
@@ -990,7 +992,7 @@ joinGameBtn.addEventListener('click', () => {
                     categoryOptions.forEach(opt => {
                         if (opt.dataset.category === currentCategory) {
                             opt.classList.add('selected');
-                            gameState.category = currentCategory; // Wichtig: Kategorie im lokalen Status aktualisieren
+                            gameState.category = currentCategory; // Kategorie im lokalen Status aktualisieren
                         } else {
                             opt.classList.remove('selected');
                         }
@@ -1000,6 +1002,9 @@ joinGameBtn.addEventListener('click', () => {
                     categoryOptions.forEach(opt => opt.classList.remove('selected'));
                     gameState.category = ''; // Kategorie zurücksetzen
                 }
+                
+                // Spielerliste für Host aktualisieren zeigen
+                updateHostPlayerList();
             });
         });
         
@@ -1264,10 +1269,11 @@ document.getElementById('submitGuessBtn').addEventListener('click', () => {
     });
 });
 
-// Überwachung der Abstimmungsergebnisse
+// Verbesserte Überwachung der Abstimmungsergebnisse
 function setupVotingResultsListener() {
+    // Abstimmungsergebnisse überwachen
     database.ref('games/' + gameState.gameCode + '/playersVoted').on('value', (snapshot) => {
-        if (snapshot.exists()) {
+        if (snapshot.exists() && gameState.started) {
             const playersVoted = snapshot.val();
             
             // Wenn alle Spieler abgestimmt haben
@@ -1277,107 +1283,137 @@ function setupVotingResultsListener() {
         }
     });
 
+    // Spielneustart überwachen
     database.ref('games/' + gameState.gameCode + '/started').on('value', (snapshot) => {
         if (snapshot.exists() && snapshot.val() === false && gameState.started === true) {
-            // Zurück in den Warteraum, wenn der Host eine neue Runde startet
+            // Spielzustand zurücksetzen
+            gameState.started = false;
+            gameState.votes = {};
+            gameState.wordGuess = '';
+            gameState.votingComplete = false;
+            gameState.playersVoted = [];
+            gameState.imposterIndex = -1;
+            gameState.playerOrder = [];
+            
+            // UI für alle Spieler zurücksetzen
+            document.getElementById('votingSection').style.display = 'none';
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('normalPlayerVoting').style.display = 'none';
+            document.getElementById('imposterGuessing').style.display = 'none';
+            document.getElementById('voteConfirmation').classList.add('hidden');
+            document.getElementById('guessConfirmation').classList.add('hidden');
+            document.getElementById('endDiscussionBtn').style.display = 'none';
+            gameSection.classList.add('hidden');
+            
             if (!gameState.isHost) {
-                gameSection.classList.add('hidden');
-                document.getElementById('votingSection').style.display = 'none';
-                document.getElementById('resultSection').style.display = 'none';
+                // Nicht-Host-Spieler in den Warteraum zurücksetzen
                 joinSection.classList.remove('hidden');
                 waitingRoomSection.classList.remove('hidden');
-                
-                // Zustand zurücksetzen
-                gameState.started = false;
-                gameState.votes = {};
-                gameState.wordGuess = '';
-                gameState.votingComplete = false;
-                gameState.playersVoted = [];
+                updateJoinPlayerList(); // Spielerliste im Warteraum aktualisieren
             }
         }
     });
 }
 
-// Ergebnisse anzeigen
-function showResults() {
-    document.getElementById('votingSection').style.display = 'none';
-    document.getElementById('resultSection').style.display = 'block';
-    
-    // Abstimmungsergebnisse und Imposter-Vermutung abrufen
-    database.ref('games/' + gameState.gameCode).once('value', (snapshot) => {
-        if (snapshot.exists()) {
-            const gameData = snapshot.val();
-            const votes = gameData.votes || {};
-            const wordGuess = gameData.wordGuess || "nichts geraten";
-            const imposter = gameState.players[gameState.imposterIndex];
+        // Verbesserte Funktion zum Anzeigen der Ergebnisse
+        function showResults() {
+            document.getElementById('votingSection').style.display = 'none';
+            document.getElementById('resultSection').style.display = 'block';
             
-            // Stimmen zählen
-            const voteCounts = {};
-            Object.values(votes).forEach(vote => {
-                voteCounts[vote] = (voteCounts[vote] || 0) + 1;
+            // Abstimmungsergebnisse und Imposter-Vermutung abrufen
+            database.ref('games/' + gameState.gameCode).once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const gameData = snapshot.val();
+                    const votes = gameData.votes || {};
+                    const wordGuess = gameData.wordGuess || "nichts geraten";
+                    const imposter = gameState.players[gameState.imposterIndex];
+                    
+                    // Stimmen zählen
+                    const voteCounts = {};
+                    Object.values(votes).forEach(vote => {
+                        voteCounts[vote] = (voteCounts[vote] || 0) + 1;
+                    });
+                    
+                    // Meistgewählten Spieler ermitteln
+                    let maxVotes = 0;
+                    let mostVotedPlayer = "";
+                    for (const player in voteCounts) {
+                        if (voteCounts[player] > maxVotes) {
+                            maxVotes = voteCounts[player];
+                            mostVotedPlayer = player;
+                        }
+                    }
+                    
+                    // Ergebnisse anzeigen
+                    const resultContent = document.getElementById('resultContent');
+                    
+                    let resultHTML = `
+                        <p>Der <span class="imposter-reveal">Imposter</span> war: <strong>${imposter}</strong></p>
+                        <p>Das geheime Wort war: <span class="word-reveal">${gameState.word}</span></p>
+                        <p>Der Imposter hat geraten: <strong>${wordGuess}</strong></p>
+                        <p>Die meisten Stimmen erhielt: <strong>${mostVotedPlayer}</strong> (${maxVotes} Stimmen)</p>
+                        <h3>Abstimmungsergebnisse:</h3>
+                        <ul>
+                    `;
+                    
+                    // Spieler sortieren nach Stimmenzahl
+                    const sortedPlayers = Object.keys(voteCounts).sort((a, b) => voteCounts[b] - voteCounts[a]);
+                    
+                    sortedPlayers.forEach(player => {
+                        const isImposter = player === imposter ? ' (Imposter)' : '';
+                        resultHTML += `<li>${player}${isImposter} <span class="vote-count">${voteCounts[player]}</span></li>`;
+                    });
+                    
+                    resultHTML += `</ul>`;
+                    
+                    // Spielergebnis anzeigen (Imposter gewonnen oder verloren)
+                    let gameOutcome = '';
+                    if (mostVotedPlayer === imposter) {
+                        gameOutcome = '<p class="normal-player">Die normalen Spieler haben gewonnen! Der Imposter wurde entlarvt.</p>';
+                    } else if (wordGuess.toLowerCase() === gameState.word.toLowerCase()) {
+                        gameOutcome = '<p class="imposter">Der Imposter hat gewonnen! Das Wort wurde korrekt erraten.</p>';
+                    } else {
+                        gameOutcome = '<p class="imposter">Der Imposter hat gewonnen! Er wurde nicht entlarvt.</p>';
+                    }
+                    
+                    resultHTML += gameOutcome;
+                    resultContent.innerHTML = resultHTML;
+                }
             });
             
-            // Ergebnisse anzeigen
-            const resultContent = document.getElementById('resultContent');
-            
-            let resultHTML = `
-                <p>Der <span class="imposter-reveal">Imposter</span> war: <strong>${imposter}</strong></p>
-                <p>Das geheime Wort war: <span class="word-reveal">${gameState.word}</span></p>
-                <p>Der Imposter hat geraten: <strong>${wordGuess}</strong></p>
-                <h3>Abstimmungsergebnisse:</h3>
-                <ul>
-            `;
-            
-            // Spieler sortieren nach Stimmenzahl
-            const sortedPlayers = Object.keys(voteCounts).sort((a, b) => voteCounts[b] - voteCounts[a]);
-            
-            sortedPlayers.forEach(player => {
-                resultHTML += `<li>${player} <span class="vote-count">${voteCounts[player]}</span></li>`;
-            });
-            
-            resultHTML += `</ul>`;
-            resultContent.innerHTML = resultHTML;
+            // "Neue Runde starten"-Button nur für Host anzeigen
+            if (gameState.isHost) {
+                document.getElementById('startNewRoundBtn').classList.remove('hidden');
+            }
         }
-    });
-
-
-
-    
-        if (gameState.isHost) {
-        document.getElementById('startNewRoundBtn').classList.remove('hidden');
-    }
-
-
-    
-}
 
 
         
 
 
-// Dark Mode Funktionalität
-const themeToggle = document.getElementById('themeToggle');
-let darkMode = localStorage.getItem('darkMode') === 'true';
-
-// Beim Laden der Seite prüfen, ob Dark Mode aktiviert sein sollte
-if (darkMode) {
-    document.body.classList.add('dark-mode');
-    themeToggle.textContent = '☀️';
-}
-
-// Toggle Dark Mode Funktion
-themeToggle.addEventListener('click', () => {
-    darkMode = !darkMode;
-    localStorage.setItem('darkMode', darkMode);
-    
-    if (darkMode) {
-        document.body.classList.add('dark-mode');
-        themeToggle.textContent = '☀️';
-    } else {
-        document.body.classList.remove('dark-mode');
-        themeToggle.textContent = '🌙';
-    }
-});
+        // Dark Mode Funktionalität
+        const themeToggle = document.getElementById('themeToggle');
+        let darkMode = localStorage.getItem('darkMode') === 'true';
+        
+        // Beim Laden der Seite prüfen, ob Dark Mode aktiviert sein sollte
+        if (darkMode) {
+            document.body.classList.add('dark-mode');
+            themeToggle.textContent = '☀️';
+        }
+        
+        // Toggle Dark Mode Funktion
+        themeToggle.addEventListener('click', () => {
+            darkMode = !darkMode;
+            localStorage.setItem('darkMode', darkMode);
+            
+            if (darkMode) {
+                document.body.classList.add('dark-mode');
+                themeToggle.textContent = '☀️';
+            } else {
+                document.body.classList.remove('dark-mode');
+                themeToggle.textContent = '🌙';
+            }
+        });
 
         
     </script>
