@@ -626,9 +626,10 @@
             return code;
         }
 
+
         
         
-        // Spiel erstellen (Host)
+        // Spiel erstellen (Host) - Korrigierte Version
         createGameBtn.addEventListener('click', () => {
             const name = hostName.value.trim();
             const count = parseInt(playerCount.value);
@@ -648,12 +649,6 @@
                 alert('Bitte wähle eine Kategorie oder gib ein eigenes Wort ein.');
                 return;
             }
-
-
-
-
-
-            
             
             // Spielcode generieren
             const gameCode = generateGameCode();
@@ -664,6 +659,7 @@
             // Wort festlegen
             if (customWord !== '') {
                 gameState.word = customWord;
+                gameState.category = 'custom'; // Wichtig: Bei eigenem Wort Kategorie auf 'custom' setzen
             } else {
                 const categoryWords = wordCategories[gameState.category];
                 gameState.word = categoryWords[Math.floor(Math.random() * categoryWords.length)];
@@ -697,7 +693,7 @@
                     }
                 }
             });
-
+        
             database.ref('games/' + gameCode + '/playerOrder').on('value', (snapshot) => {
                 if (snapshot.exists()) {
                     gameState.playerOrder = snapshot.val();
@@ -838,6 +834,23 @@
                 return;
             }
             
+            // Überprüfe ob Wort und Kategorie vorhanden sind
+            if (gameState.category === '' || gameState.category === null) {
+                alert('Bitte wähle eine Kategorie oder gib ein eigenes Wort ein.');
+                return;
+            }
+            
+            if (gameState.word === '' || gameState.word === null) {
+                // Neu-Generierung des Wortes falls nicht vorhanden
+                if (gameState.category !== 'custom') {
+                    const categoryWords = wordCategories[gameState.category];
+                    gameState.word = categoryWords[Math.floor(Math.random() * categoryWords.length)];
+                } else {
+                    alert('Bitte gib ein eigenes Wort ein.');
+                    return;
+                }
+            }
+            
             // Imposter zufällig auswählen
             const imposterIndex = Math.floor(Math.random() * gameState.players.length);
             
@@ -848,7 +861,9 @@
             database.ref('games/' + gameState.gameCode).update({
                 started: true,
                 imposterIndex: imposterIndex,
-                playerOrder: playerOrder
+                playerOrder: playerOrder,
+                category: gameState.category,
+                word: gameState.word
             });
             
             gameState.imposterIndex = imposterIndex;
@@ -921,60 +936,63 @@
 
 
 
-        // Neue Runde starten EventListener
-                document.getElementById('startNewRoundBtn').addEventListener('click', () => {
-                    if (!gameState.isHost) return;
-                    
-                    // Lokalen Spielzustand vollständig zurücksetzen
-                    gameState.started = false;
-                    gameState.votes = {};
-                    gameState.wordGuess = '';
-                    gameState.votingComplete = false;
-                    gameState.playersVoted = [];
-                    gameState.imposterIndex = -1;
-                    gameState.playerOrder = [];
-                    gameState.category = ''; // Wichtig: Kategorie zurücksetzen
-                    gameState.word = ''; // Wichtig: Wort zurücksetzen
-                    
-                    // UI-Elemente vollständig zurücksetzen
-                    gameSection.classList.add('hidden');
-                    document.getElementById('votingSection').style.display = 'none';
-                    document.getElementById('resultSection').style.display = 'none';
-                    document.getElementById('normalPlayerVoting').style.display = 'none';
-                    document.getElementById('imposterGuessing').style.display = 'none';
-                    document.getElementById('voteConfirmation').classList.add('hidden');
-                    document.getElementById('guessConfirmation').classList.add('hidden');
-                    document.getElementById('submitGuessBtn').disabled = false; // Button wieder aktivieren
-                    document.getElementById('wordGuessInput').value = ''; // Rateeingabe leeren
-                    document.getElementById('endDiscussionBtn').style.display = 'none'; // Diskussionsbutton ausblenden
-                    document.getElementById('startNewRoundBtn').classList.add('hidden'); // "Neue Runde"-Button ausblenden
-                    
-                    // Host-Interface mit Spielern anzeigen
-                    hostSection.classList.remove('hidden');
-                    gameCodeSection.classList.remove('hidden');
-                    startGameBtn.classList.remove('hidden');
-                    
-                    // Alle Kategorie-Optionen zurücksetzen
-                    categoryOptions.forEach(opt => opt.classList.remove('selected'));
-                    wordInput.value = ''; // Eigenes Wort-Eingabefeld leeren
-                    
-                    // Firebase vollständig zurücksetzen mit eindeutigen null-Werten
-                    database.ref('games/' + gameState.gameCode).update({
-                        started: false,
-                        votes: null,
-                        playersVoted: [],
-                        votingPhase: false,
-                        wordGuess: null,
-                        imposterIndex: null,
-                        playerOrder: null,
-                        category: null,  // Kategorie komplett zurücksetzen
-                        word: null       // Wort komplett zurücksetzen
-                    });
-                    
-                    // Spielerliste für Host aktualisieren zeigen
-                    updateHostPlayerList();
-                });
-        
+        // Neue Runde starten EventListener - korrigierte Version
+        document.getElementById('startNewRoundBtn').addEventListener('click', () => {
+            if (!gameState.isHost) return;
+            
+            // Lokalen Spielzustand vollständig zurücksetzen
+            gameState.started = false;
+            gameState.votes = {};
+            gameState.wordGuess = '';
+            gameState.votingComplete = false;
+            gameState.playersVoted = [];
+            gameState.imposterIndex = -1;
+            gameState.playerOrder = [];
+            
+            // UI-Elemente vollständig zurücksetzen
+            gameSection.classList.add('hidden');
+            document.getElementById('votingSection').style.display = 'none';
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('normalPlayerVoting').style.display = 'none';
+            document.getElementById('imposterGuessing').style.display = 'none';
+            document.getElementById('voteConfirmation').classList.add('hidden');
+            document.getElementById('guessConfirmation').classList.add('hidden');
+            document.getElementById('submitGuessBtn').disabled = false; // Button wieder aktivieren
+            document.getElementById('wordGuessInput').value = ''; // Rateeingabe leeren
+            document.getElementById('endDiscussionBtn').style.display = 'none'; // Diskussionsbutton ausblenden
+            document.getElementById('startNewRoundBtn').classList.add('hidden'); // "Neue Runde"-Button ausblenden
+            
+            // Host-Interface mit Spielern anzeigen
+            hostSection.classList.remove('hidden');
+            gameCodeSection.classList.remove('hidden');
+            startGameBtn.classList.remove('hidden');
+            
+            // Alle Kategorie-Optionen zurücksetzen
+            categoryOptions.forEach(opt => opt.classList.remove('selected'));
+            wordInput.value = ''; // Eigenes Wort-Eingabefeld leeren
+            
+            // Wichtig: Kategorie und Wort lokal zurücksetzen, aber noch nicht in Firebase
+            gameState.category = ''; 
+            gameState.word = '';
+            
+            // Firebase vollständig zurücksetzen mit eindeutigen null-Werten
+            database.ref('games/' + gameState.gameCode).update({
+                started: false,
+                votes: null,
+                playersVoted: [],
+                votingPhase: false,
+                wordGuess: null,
+                imposterIndex: null,
+                playerOrder: null,
+                // Kategorie und Wort in Firebase zurücksetzen, damit sie neu gesetzt werden können
+                category: null,
+                word: null
+            });
+            
+            // Spielerliste für Host aktualisieren zeigen
+            updateHostPlayerList();
+        });
+                
 
 
 
@@ -1040,50 +1058,63 @@
 
 
         
-        // Spielansicht anzeigen
+        // Spielansicht anzeigen - Korrigierte Version
         function showGameView() {
             hostSection.classList.add('hidden');
             joinSection.classList.add('hidden');
             gameSection.classList.remove('hidden');
             
-            // Spielerrolle anzeigen
-            const playerIndex = gameState.players.indexOf(gameState.currentPlayerName);
-            
-            playerRoleDisplay.classList.remove('normal-player', 'imposter');
-            
-            if (playerIndex === gameState.imposterIndex) {
-                playerRoleDisplay.classList.add('imposter');
-                playerRoleDisplay.innerHTML = `
-                    <p>Du bist der <strong>IMPOSTER</strong>!</p>
-                    <p>Die Kategorie ist: <span class="word-display">${gameState.category}</span></p>
-                    <p>Alle anderen Spieler kennen ein geheimes Wort, das du erraten musst.</p>
-                    <p>Höre gut zu und versuche nicht aufzufallen!</p>
-                `;
-            } else {
-                playerRoleDisplay.classList.add('normal-player');
-                playerRoleDisplay.innerHTML = `
-                    <p>Du bist ein <strong>normaler Spieler</strong>!</p>
-                    <p>Die Kategorie ist: <span class="word-display">${gameState.category}</span></p>
-                    <p>Das geheime Wort ist: <span class="word-display">${gameState.word}</span></p>
-                    <p>Beschreibe das Wort, ohne es direkt zu nennen. Versuche den Imposter zu erkennen!</p>
-                `;
-            }
-        
-            updateGamePlayerList();
-            
-            // Spielerreihenfolge anzeigen, wenn vorhanden
-            if (gameState.playerOrder && gameState.playerOrder.length > 0) {
-                updatePlayerOrderList();
-            }
-            
-            // "Diskussion beenden"-Button nur für Host anzeigen
-            if (gameState.isHost) {
-                document.getElementById('endDiscussionBtn').style.display = 'block';
-            }
-            
-            // Abstimmungs- und Ergebnislistener einrichten
-            setupVotingPhaseListener();
-            setupVotingResultsListener();
+            // Zunächst aktuelle Spielinformationen aus Firebase laden, um sicherzustellen,
+            // dass wir die neuesten Kategorie- und Wortinformationen haben
+            database.ref('games/' + gameState.gameCode).once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const gameData = snapshot.val();
+                    
+                    // Aktualisiere den lokalen Spielzustand mit den Daten aus Firebase
+                    gameState.word = gameData.word;
+                    gameState.category = gameData.category;
+                    gameState.imposterIndex = gameData.imposterIndex;
+                    
+                    // Spielerrolle anzeigen
+                    const playerIndex = gameState.players.indexOf(gameState.currentPlayerName);
+                    
+                    playerRoleDisplay.classList.remove('normal-player', 'imposter');
+                    
+                    if (playerIndex === gameState.imposterIndex) {
+                        playerRoleDisplay.classList.add('imposter');
+                        playerRoleDisplay.innerHTML = `
+                            <p>Du bist der <strong>IMPOSTER</strong>!</p>
+                            <p>Die Kategorie ist: <span class="word-display">${gameState.category}</span></p>
+                            <p>Alle anderen Spieler kennen ein geheimes Wort, das du erraten musst.</p>
+                            <p>Höre gut zu und versuche nicht aufzufallen!</p>
+                        `;
+                    } else {
+                        playerRoleDisplay.classList.add('normal-player');
+                        playerRoleDisplay.innerHTML = `
+                            <p>Du bist ein <strong>normaler Spieler</strong>!</p>
+                            <p>Die Kategorie ist: <span class="word-display">${gameState.category}</span></p>
+                            <p>Das geheime Wort ist: <span class="word-display">${gameState.word}</span></p>
+                            <p>Beschreibe das Wort, ohne es direkt zu nennen. Versuche den Imposter zu erkennen!</p>
+                        `;
+                    }
+                
+                    updateGamePlayerList();
+                    
+                    // Spielerreihenfolge anzeigen, wenn vorhanden
+                    if (gameState.playerOrder && gameState.playerOrder.length > 0) {
+                        updatePlayerOrderList();
+                    }
+                    
+                    // "Diskussion beenden"-Button nur für Host anzeigen
+                    if (gameState.isHost) {
+                        document.getElementById('endDiscussionBtn').style.display = 'block';
+                    }
+                    
+                    // Abstimmungs- und Ergebnislistener einrichten
+                    setupVotingPhaseListener();
+                    setupVotingResultsListener();
+                }
+            });
         }
 
 
