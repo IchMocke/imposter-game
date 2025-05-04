@@ -922,89 +922,53 @@ joinGameBtn.addEventListener('click', () => {
         document.getElementById('startNewRoundBtn').addEventListener('click', () => {
             if (!gameState.isHost) return;
             
-            // Kategorie aus der aktuellen Firebase-Datenbank abrufen
-            database.ref('games/' + gameState.gameCode + '/category').once('value', (snapshot) => {
-                let currentCategory = null;
-                if (snapshot.exists()) {
-                    currentCategory = snapshot.val();
-                }
-                
-                // Neues Wort auswählen basierend auf der gespeicherten Kategorie
-                let newWord = '';
-                
-                if (currentCategory && currentCategory !== 'custom') {
-                    // Nur wenn eine gültige Kategorie vorhanden ist, nehme ein Wort aus dieser Kategorie
-                    const categoryWords = wordCategories[currentCategory];
-                    if (categoryWords) {
-                        newWord = categoryWords[Math.floor(Math.random() * categoryWords.length)];
-                    }
-                } else if (wordInput.value.trim() !== '') {
-                    // Benutzerdefiniertes Wort verwenden, wenn verfügbar
-                    newWord = wordInput.value.trim();
-                } else {
-                    // Behalte das aktuelle Wort bei, wenn keine neue Quelle verfügbar ist
-                    newWord = gameState.word;
-                }
-                
-                // Lokalen Spielzustand vollständig zurücksetzen
-                gameState.started = false;
-                gameState.votes = {};
-                gameState.wordGuess = '';
-                gameState.votingComplete = false;
-                gameState.playersVoted = [];
-                gameState.word = newWord; // Wichtig: Neues Wort im lokalen Status speichern
-                gameState.imposterIndex = -1; // Zurücksetzen des Imposter-Index
-                gameState.playerOrder = []; // Vollständiges Zurücksetzen der Spielerreihenfolge 
-                
-                // UI-Elemente vollständig zurücksetzen
-                gameSection.classList.add('hidden');
-                document.getElementById('votingSection').style.display = 'none';
-                document.getElementById('resultSection').style.display = 'none';
-                document.getElementById('normalPlayerVoting').style.display = 'none';
-                document.getElementById('imposterGuessing').style.display = 'none';
-                document.getElementById('voteConfirmation').classList.add('hidden');
-                document.getElementById('guessConfirmation').classList.add('hidden');
-                document.getElementById('submitGuessBtn').disabled = false; // Button wieder aktivieren
-                document.getElementById('wordGuessInput').value = ''; // Rateeingabe leeren
-                document.getElementById('endDiscussionBtn').style.display = 'none'; // Diskussionsbutton ausblenden
-                document.getElementById('startNewRoundBtn').classList.add('hidden'); // "Neue Runde"-Button ausblenden
-                
-                // Host-Interface mit Spielern anzeigen
-                hostSection.classList.remove('hidden');
-                gameCodeSection.classList.remove('hidden');
-                startGameBtn.classList.remove('hidden');
-                
-                // Firebase vollständig zurücksetzen mit eindeutigen null-Werten
-                database.ref('games/' + gameState.gameCode).update({
-                    started: false,
-                    votes: null, // Explizit null setzen statt leeres Objekt
-                    playersVoted: [],
-                    votingPhase: false,
-                    wordGuess: null,
-                    word: newWord,
-                    imposterIndex: null,
-                    playerOrder: null // Spielerreihenfolge explizit auf null setzen
-                });
-                
-                // Ausgewählte Kategorie in der UI anzeigen
-                if (currentCategory && currentCategory !== 'custom') {
-                    categoryOptions.forEach(opt => {
-                        if (opt.dataset.category === currentCategory) {
-                            opt.classList.add('selected');
-                            gameState.category = currentCategory; // Kategorie im lokalen Status aktualisieren
-                        } else {
-                            opt.classList.remove('selected');
-                        }
-                    });
-                } else {
-                    // Wenn benutzerdefiniertes Wort verwendet wurde
-                    categoryOptions.forEach(opt => opt.classList.remove('selected'));
-                    gameState.category = ''; // Kategorie zurücksetzen
-                }
-                
-                // Spielerliste für Host aktualisieren zeigen
-                updateHostPlayerList();
+            // Lokalen Spielzustand vollständig zurücksetzen
+            gameState.started = false;
+            gameState.votes = {};
+            gameState.wordGuess = '';
+            gameState.votingComplete = false;
+            gameState.playersVoted = [];
+            gameState.imposterIndex = -1;
+            gameState.playerOrder = [];
+            gameState.category = ''; // Wichtig: Kategorie zurücksetzen
+            
+            // UI-Elemente vollständig zurücksetzen
+            gameSection.classList.add('hidden');
+            document.getElementById('votingSection').style.display = 'none';
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('normalPlayerVoting').style.display = 'none';
+            document.getElementById('imposterGuessing').style.display = 'none';
+            document.getElementById('voteConfirmation').classList.add('hidden');
+            document.getElementById('guessConfirmation').classList.add('hidden');
+            document.getElementById('submitGuessBtn').disabled = false; // Button wieder aktivieren
+            document.getElementById('wordGuessInput').value = ''; // Rateeingabe leeren
+            document.getElementById('endDiscussionBtn').style.display = 'none'; // Diskussionsbutton ausblenden
+            document.getElementById('startNewRoundBtn').classList.add('hidden'); // "Neue Runde"-Button ausblenden
+            
+            // Host-Interface mit Spielern anzeigen
+            hostSection.classList.remove('hidden');
+            gameCodeSection.classList.remove('hidden');
+            startGameBtn.classList.remove('hidden');
+            
+            // Alle Kategorie-Optionen zurücksetzen
+            categoryOptions.forEach(opt => opt.classList.remove('selected'));
+            wordInput.value = ''; // Eigenes Wort-Eingabefeld leeren
+            
+            // Firebase vollständig zurücksetzen mit eindeutigen null-Werten
+            database.ref('games/' + gameState.gameCode).update({
+                started: false,
+                votes: null,
+                playersVoted: [],
+                votingPhase: false,
+                wordGuess: null,
+                imposterIndex: null,
+                playerOrder: null,
+                category: null,  // Kategorie komplett zurücksetzen
+                word: null       // Wort komplett zurücksetzen
             });
+            
+            // Spielerliste für Host aktualisieren zeigen
+            updateHostPlayerList();
         });
         
 
