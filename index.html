@@ -272,9 +272,17 @@
         const categoryOptions = categorySelect.querySelectorAll('.category-option');
         categoryOptions.forEach(option => {
             option.addEventListener('click', () => {
+                // Entferne 'selected' von allen Optionen
                 categoryOptions.forEach(opt => opt.classList.remove('selected'));
+                
+                // Füge 'selected' zur angeklickten Option hinzu
                 option.classList.add('selected');
-                gameState.category = option.dataset.category;
+                
+                // Setze die Kategorie im gameState - Das war das Problem!
+                gameState.category = option.getAttribute('data-category');
+                
+                // Für Debugging-Zwecke
+                console.log("Kategorie ausgewählt:", gameState.category);
             });
         });
         
