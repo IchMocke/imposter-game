@@ -670,10 +670,12 @@
             document.getElementById('imposterGuessing').style.display = 'none';
             document.getElementById('voteConfirmation').classList.add('hidden');
             document.getElementById('guessConfirmation').classList.add('hidden');
-            document.getElementById('submitGuessBtn').disabled = false; // Button wieder aktivieren
-            document.getElementById('wordGuessInput').value = ''; // Rateeingabe leeren
-            document.getElementById('endDiscussionBtn').style.display = 'none'; // Diskussionsbutton ausblenden
-            document.getElementById('startNewRoundBtn').classList.add('hidden'); // "Neue Runde"-Button ausblenden
+            document.getElementById('endDiscussionBtn').style.display = 'none'; 
+            document.getElementById('startNewRoundBtn').classList.add('hidden');
+            
+            // WICHTIG: Formular-Elemente explizit zurücksetzen
+            document.getElementById('submitGuessBtn').disabled = false; 
+            document.getElementById('wordGuessInput').value = '';
             
             // Host-Interface mit Spielern anzeigen
             hostSection.classList.remove('hidden');
@@ -682,13 +684,13 @@
             
             // Alle Kategorie-Optionen zurücksetzen
             categoryOptions.forEach(opt => opt.classList.remove('selected'));
-            wordInput.value = ''; // Eigenes Wort-Eingabefeld leeren
+            wordInput.value = '';
             
-            // Wichtig: Kategorie und Wort lokal zurücksetzen, aber noch nicht in Firebase
+            // Kategorie und Wort lokal zurücksetzen
             gameState.category = ''; 
             gameState.word = '';
             
-            // Firebase vollständig zurücksetzen mit eindeutigen null-Werten
+            // Firebase vollständig zurücksetzen
             database.ref('games/' + gameState.gameCode).update({
                 started: false,
                 votes: null,
@@ -697,15 +699,125 @@
                 wordGuess: null,
                 imposterIndex: null,
                 playerOrder: null,
-                // Kategorie und Wort in Firebase zurücksetzen, damit sie neu gesetzt werden können
                 category: null,
                 word: null
             });
             
-            // Spielerliste für Host aktualisieren zeigen
+            // Spielerliste für Host aktualisieren
             updateHostPlayerList();
         });
+        
+        // Außerdem müssen wir die showGameView-Funktion modifizieren, damit sie die Formular-Elemente korrekt zurücksetzt:
+        function showGameView() {
+            hostSection.classList.add('hidden');
+            joinSection.classList.add('hidden');
+            gameSection.classList.remove('hidden');
+            
+            // Formular-Elemente zurücksetzen
+            document.getElementById('submitGuessBtn').disabled = false;
+            document.getElementById('wordGuessInput').value = '';
+            
+            // Aktuelle Spielinformationen aus Firebase laden
+            database.ref('games/' + gameState.gameCode).once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const gameData = snapshot.val();
+                    
+                    // Aktualisiere den lokalen Spielzustand mit den Daten aus Firebase
+                    gameState.word = gameData.word;
+                    gameState.category = gameData.category;
+                    gameState.imposterIndex = gameData.imposterIndex;
+                    
+                    // Spielerrolle anzeigen
+                    const playerIndex = gameState.players.indexOf(gameState.currentPlayerName);
+                    
+                    playerRoleDisplay.classList.remove('normal-player', 'imposter');
+                    
+                    if (playerIndex === gameState.imposterIndex) {
+                        playerRoleDisplay.classList.add('imposter');
+                        playerRoleDisplay.innerHTML = `
+                            <p>Du bist der <strong>IMPOSTER</strong>!</p>
+                            <p>Die Kategorie ist: <span class="word-display">${gameState.category}</span></p>
+                            <p>Alle anderen Spieler kennen ein geheimes Wort, das du erraten musst.</p>
+                            <p>Höre gut zu und versuche nicht aufzufallen!</p>
+                        `;
+                    } else {
+                        playerRoleDisplay.classList.add('normal-player');
+                        playerRoleDisplay.innerHTML = `
+                            <p>Du bist ein <strong>normaler Spieler</strong>!</p>
+                            <p>Die Kategorie ist: <span class="word-display">${gameState.category}</span></p>
+                            <p>Das geheime Wort ist: <span class="word-display">${gameState.word}</span></p>
+                            <p>Beschreibe das Wort, ohne es direkt zu nennen. Versuche den Imposter zu erkennen!</p>
+                        `;
+                    }
                 
+                    updateGamePlayerList();
+                    
+                    // Spielerreihenfolge anzeigen, wenn vorhanden
+                    if (gameState.playerOrder && gameState.playerOrder.length > 0) {
+                        updatePlayerOrderList();
+                    }
+                    
+                    // "Diskussion beenden"-Button nur für Host anzeigen
+                    if (gameState.isHost) {
+                        document.getElementById('endDiscussionBtn').style.display = 'block';
+                    }
+                    
+                    // Abstimmungs- und Ergebnislistener einrichten
+                    setupVotingPhaseListener();
+                    setupVotingResultsListener();
+                }
+            });
+        }
+        
+        // Zusätzlich müssen wir die setupVotingResultsListener-Funktion anpassen:
+        function setupVotingResultsListener() {
+            // Abstimmungsergebnisse überwachen
+            database.ref('games/' + gameState.gameCode + '/playersVoted').on('value', (snapshot) => {
+                if (snapshot.exists() && gameState.started) {
+                    const playersVoted = snapshot.val();
+                    
+                    // Wenn alle Spieler abgestimmt haben
+                    if (playersVoted.length === gameState.players.length) {
+                        showResults();
+                    }
+                }
+            });
+        
+            // Spielneustart überwachen
+            database.ref('games/' + gameState.gameCode + '/started').on('value', (snapshot) => {
+                if (snapshot.exists() && snapshot.val() === false && gameState.started === true) {
+                    // Spielzustand zurücksetzen
+                    gameState.started = false;
+                    gameState.votes = {};
+                    gameState.wordGuess = '';
+                    gameState.votingComplete = false;
+                    gameState.playersVoted = [];
+                    gameState.imposterIndex = -1;
+                    gameState.playerOrder = [];
+                    
+                    // UI für alle Spieler zurücksetzen
+                    document.getElementById('votingSection').style.display = 'none';
+                    document.getElementById('resultSection').style.display = 'none';
+                    document.getElementById('normalPlayerVoting').style.display = 'none';
+                    document.getElementById('imposterGuessing').style.display = 'none';
+                    document.getElementById('voteConfirmation').classList.add('hidden');
+                    document.getElementById('guessConfirmation').classList.add('hidden');
+                    document.getElementById('endDiscussionBtn').style.display = 'none';
+                    gameSection.classList.add('hidden');
+                    
+                    // WICHTIG: Formular-Elemente explizit zurücksetzen
+                    document.getElementById('submitGuessBtn').disabled = false;
+                    document.getElementById('wordGuessInput').value = '';
+                    
+                    if (!gameState.isHost) {
+                        // Nicht-Host-Spieler in den Warteraum zurücksetzen
+                        joinSection.classList.remove('hidden');
+                        waitingRoomSection.classList.remove('hidden');
+                        updateJoinPlayerList(); // Spielerliste im Warteraum aktualisieren
+                    }
+                }
+            });
+        }  
 
 
 
@@ -873,39 +985,39 @@
 
 
         // Diskussion beenden und Abstimmung starten
-document.getElementById('endDiscussionBtn').addEventListener('click', () => {
-    if (!gameState.isHost) return;
-    
-    database.ref('games/' + gameState.gameCode).update({
-        votingPhase: true
-    });
-});
-
-// Überwachung der Abstimmungsphase
-function setupVotingPhaseListener() {
-    database.ref('games/' + gameState.gameCode + '/votingPhase').on('value', (snapshot) => {
-        if (snapshot.exists() && snapshot.val() === true) {
-            showVotingSection();
+        document.getElementById('endDiscussionBtn').addEventListener('click', () => {
+            if (!gameState.isHost) return;
+            
+            database.ref('games/' + gameState.gameCode).update({
+                votingPhase: true
+            });
+        });
+        
+        // Überwachung der Abstimmungsphase
+        function setupVotingPhaseListener() {
+            database.ref('games/' + gameState.gameCode + '/votingPhase').on('value', (snapshot) => {
+                if (snapshot.exists() && snapshot.val() === true) {
+                    showVotingSection();
+                }
+            });
         }
-    });
-}
-
-// Zeige Abstimmungssektion
-function showVotingSection() {
-    document.getElementById('endDiscussionBtn').style.display = 'none';
-    document.getElementById('votingSection').style.display = 'block';
-    
-    const playerIndex = gameState.players.indexOf(gameState.currentPlayerName);
-    
-    if (playerIndex === gameState.imposterIndex) {
-        // Imposter sieht Ratefeld
-        document.getElementById('imposterGuessing').style.display = 'block';
-    } else {
-        // Normale Spieler sehen Abstimmungsoptionen
-        document.getElementById('normalPlayerVoting').style.display = 'block';
-        populateVotingOptions();
-    }
-}
+        
+        // Zeige Abstimmungssektion
+        function showVotingSection() {
+            document.getElementById('endDiscussionBtn').style.display = 'none';
+            document.getElementById('votingSection').style.display = 'block';
+            
+            const playerIndex = gameState.players.indexOf(gameState.currentPlayerName);
+            
+            if (playerIndex === gameState.imposterIndex) {
+                // Imposter sieht Ratefeld
+                document.getElementById('imposterGuessing').style.display = 'block';
+            } else {
+                // Normale Spieler sehen Abstimmungsoptionen
+                document.getElementById('normalPlayerVoting').style.display = 'block';
+                populateVotingOptions();
+            }
+        }
 
 // Abstimmungsoptionen anzeigen
 function populateVotingOptions() {
@@ -963,25 +1075,35 @@ document.getElementById('submitGuessBtn').addEventListener('click', () => {
         return;
     }
     
-    // Vermutung in Firebase speichern
-    database.ref('games/' + gameState.gameCode + '/wordGuess').set(wordGuess);
-    
-    // Bestätigung anzeigen
-    document.getElementById('guessConfirmation').classList.remove('hidden');
+    // Button deaktivieren um Mehrfach-Klicks zu verhindern
     document.getElementById('submitGuessBtn').disabled = true;
     
-    // Imposter zur Liste der abgestimmten Spieler hinzufügen
-    database.ref('games/' + gameState.gameCode + '/playersVoted').once('value', (snapshot) => {
-        let playersVoted = [];
-        if (snapshot.exists()) {
-            playersVoted = snapshot.val();
-        }
-        
-        if (!playersVoted.includes(gameState.currentPlayerName)) {
-            playersVoted.push(gameState.currentPlayerName);
-            database.ref('games/' + gameState.gameCode + '/playersVoted').set(playersVoted);
-        }
-    });
+    // Vermutung in Firebase speichern
+    database.ref('games/' + gameState.gameCode + '/wordGuess').set(wordGuess)
+        .then(() => {
+            // Bestätigung anzeigen
+            document.getElementById('guessConfirmation').classList.remove('hidden');
+            
+            // Imposter zur Liste der abgestimmten Spieler hinzufügen
+            return database.ref('games/' + gameState.gameCode + '/playersVoted').once('value');
+        })
+        .then((snapshot) => {
+            let playersVoted = [];
+            if (snapshot.exists()) {
+                playersVoted = snapshot.val();
+            }
+            
+            if (!playersVoted.includes(gameState.currentPlayerName)) {
+                playersVoted.push(gameState.currentPlayerName);
+                return database.ref('games/' + gameState.gameCode + '/playersVoted').set(playersVoted);
+            }
+        })
+        .catch((error) => {
+            console.error("Fehler beim Speichern der Vermutung:", error);
+            // Bei Fehler den Button wieder aktivieren
+            document.getElementById('submitGuessBtn').disabled = false;
+            alert("Es gab ein Problem beim Speichern deiner Vermutung. Bitte versuche es erneut.");
+        });
 });
 
 // Verbesserte Überwachung der Abstimmungsergebnisse
