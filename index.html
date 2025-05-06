@@ -1118,15 +1118,7 @@ function setupVotingResultsListener() {
                     resultHTML += `</div>`;
                     
                     // Spielergebnis anzeigen
-                    let gameOutcome = '';
-                    if (mostVotedPlayer === imposter) {
-                        gameOutcome = '<p class="normal-player">Die normalen Spieler haben den Imposter entlarvt!</p>';
-                    } else if (wordGuess.toLowerCase() === gameState.word.toLowerCase()) {
-                        gameOutcome = '<p class="imposter">Der Imposter hat das Wort erraten!</p>';
-                    } else {
-                        gameOutcome = '<p class="imposter">Der Imposter wurde nicht entlarvt!</p>';
-                    }
-                    
+                    let gameOutcome = '';                  
                     resultHTML += gameOutcome;
                     resultContent.innerHTML = resultHTML;
                 }
