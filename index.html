@@ -10,9 +10,7 @@
     <!-- CSS einbinden -->
     <link rel="stylesheet" href="style.css">
 </head>
-    
 <body>
-
     <button class="theme-toggle" id="themeToggle">🌙</button>
     
     <div class="container">
@@ -114,53 +112,42 @@
             </div>
 
             <div class="player-order-section">
-            <h3>Spielerreihenfolge:</h3>
-            <ol id="playerOrderList" class="player-order-list">
-            <!-- Spielerreihenfolge wird hier angezeigt -->
-            </ol>
+                <h3>Spielerreihenfolge:</h3>
+                <ol id="playerOrderList" class="player-order-list">
+                    <!-- Spielerreihenfolge wird hier angezeigt -->
+                </ol>
             </div>
 
             <div class="section" id="votingSection" style="display:none;">
-            <h2>Abstimmungsphase</h2>
-
-
-
-
+                <h2>Abstimmungsphase</h2>
                 
-            <!-- Für normale Spieler: Abstimmung -->
-            <div id="normalPlayerVoting" style="display:none;">
-                <p>Wer ist deiner Meinung nach der Imposter?</p>
-                <div id="votingPlayerList" class="player-voting-list">
+                <!-- Für normale Spieler: Abstimmung -->
+                <div id="normalPlayerVoting" style="display:none;">
+                    <p>Wer ist deiner Meinung nach der Imposter?</p>
+                    <div id="votingPlayerList" class="player-voting-list">
+                        <!-- Wird dynamisch gefüllt -->
+                    </div>
+                    <p id="voteConfirmation" class="hidden" style="color: green; font-weight: bold;">Deine Stimme wurde gezählt!</p>
+                </div>
+                
+                <!-- Für den Imposter: Wort erraten -->
+                <div id="imposterGuessing" style="display:none;">
+                    <p>Errate das geheime Wort:</p>
+                    <input type="text" id="wordGuessInput" placeholder="Deine Vermutung...">
+                    <button id="submitGuessBtn">Wort einreichen</button>
+                    <p id="guessConfirmation" class="hidden" style="color: green; font-weight: bold;">Deine Vermutung wurde gesendet!</p>
+                </div>
+            </div>
+            
+            <div class="section" id="resultSection" style="display:none;">
+                <h2>Spielergebnis</h2>
+                <div id="resultContent">
                     <!-- Wird dynamisch gefüllt -->
                 </div>
-                <p id="voteConfirmation" class="hidden" style="color: green; font-weight: bold;">Deine Stimme wurde gezählt!</p>
+                <button id="startNewRoundBtn" class="hidden">Neue Runde starten</button>
             </div>
             
-            <!-- Für den Imposter: Wort erraten -->
-            <div id="imposterGuessing" style="display:none;">
-                <p>Errate das geheime Wort:</p>
-                <input type="text" id="wordGuessInput" placeholder="Deine Vermutung...">
-                <button id="submitGuessBtn">Wort einreichen</button>
-                <p id="guessConfirmation" class="hidden" style="color: green; font-weight: bold;">Deine Vermutung wurde gesendet!</p>
-            </div>
-        </div>
-        
-        <div class="section" id="resultSection" style="display:none;">
-            <h2>Spielergebnis</h2>
-            <div id="resultContent">
-                <!-- Wird dynamisch gefüllt -->
-            </div>
-            <button id="startNewRoundBtn" class="hidden">Neue Runde starten</button>
-            
-        </div>
-        
-        <button id="endDiscussionBtn" style="display:none;">Diskussion beenden & Abstimmung starten</button>
-
-
-
-
-            
-            
+            <button id="endDiscussionBtn" style="display:none;">Diskussion beenden & Abstimmung starten</button>
             <button id="newGameBtn">Neues Spiel</button>
         </div>
     </div>
@@ -233,8 +220,7 @@
             wordGuess: '',
             votingComplete: false,
             playersVoted: [],
-            isHost: false,
-            playerScores: {} // Neues Feld für Punktestände
+            isHost: false
         };
         
         // DOM Elements
@@ -340,13 +326,10 @@
                 gameState.word = categoryWords[Math.floor(Math.random() * categoryWords.length)];
             }
             
-            // Spieler hinzufügen und Punktestand initialisieren
+            // Spieler hinzufügen
             gameState.players = [name];
-            gameState.playerScores = {
-                [name]: 0 // Initialisiere den Punktestand des Hosts
-            };
             
-            // Spiel in Firebase erstellen mit Punkteständen
+            // Spiel in Firebase erstellen
             database.ref('games/' + gameCode).set({
                 code: gameCode,
                 word: gameState.word,
@@ -357,8 +340,7 @@
                 createdAt: firebase.database.ServerValue.TIMESTAMP,
                 votes: {},          
                 playersVoted: [],   
-                votingPhase: false,
-                playerScores: gameState.playerScores // Speichere Punktestände in Firebase
+                votingPhase: false  
             });
             
             // Host dieser Spielsitzung zuordnen
@@ -370,14 +352,6 @@
                     if (gameState.players.length >= 3) {
                         startGameBtn.classList.remove('hidden');
                     }
-                }
-            });
-        
-            // Punktestände beobachten
-            database.ref('games/' + gameCode + '/playerScores').on('value', (snapshot) => {
-                if (snapshot.exists()) {
-                    gameState.playerScores = snapshot.val();
-                    updatePlayerLists(); // Alle Spielerlisten aktualisieren, um Punkte zu zeigen
                 }
             });
         
@@ -410,7 +384,13 @@
             gameCodeSection.classList.remove('hidden');
         });
         
-        // Beim Beitreten zu einem Spiel, Spielerpunkte initialisieren
+
+
+
+
+
+        
+        // Spiel beitreten (Spieler) - Fehlerbehebung
         joinGameBtn.addEventListener('click', () => {
             const name = playerName.value.trim();
             const code = gameCodeInput.value.trim().toUpperCase();
@@ -464,17 +444,8 @@
                         gameState.players.push(name);
                     }
                     
-                    // Punktestand für neuen Spieler initialisieren
-                    gameState.playerScores = game.playerScores || {};
-                    if (!gameState.playerScores[name]) {
-                        gameState.playerScores[name] = 0;
-                    }
-                    
                     // Spieler zur Spielerliste in Firebase hinzufügen
                     database.ref('games/' + code + '/players').set(gameState.players);
-                    
-                    // Punktestände aktualisieren
-                    database.ref('games/' + code + '/playerScores').set(gameState.playerScores);
                     
                     // Spielzustand überwachen
                     database.ref('games/' + code + '/players').on('value', (snapshot) => {
@@ -482,14 +453,6 @@
                             gameState.players = snapshot.val();
                             gameState.playerOrder = [];
                             updateJoinPlayerList();
-                        }
-                    });
-                    
-                    // Punktestände beobachten
-                    database.ref('games/' + code + '/playerScores').on('value', (snapshot) => {
-                        if (snapshot.exists()) {
-                            gameState.playerScores = snapshot.val();
-                            updateJoinPlayerList(); // Update, um Punkte anzuzeigen
                         }
                     });
                     
@@ -518,200 +481,79 @@
                 }
             });
         });
-        
-        // Update der Spielerlisten-Funktionen um Punkte anzuzeigen
-        function updateHostPlayerList() {
-            hostPlayerList.innerHTML = '';
-            gameState.players.forEach(player => {
-                const playerCard = document.createElement('div');
-                playerCard.classList.add('player-card');
-                
-                // Punktestand hinzufügen, wenn verfügbar
-                const score = gameState.playerScores[player] || 0;
-                playerCard.textContent = `${player} (${score} Pkt.)`;
-                
-                hostPlayerList.appendChild(playerCard);
-            });
-        }
-        
-        function updateJoinPlayerList() {
-            joinPlayerList.innerHTML = '';
-            gameState.players.forEach(player => {
-                const playerCard = document.createElement('div');
-                playerCard.classList.add('player-card');
-                
-                // Punktestand hinzufügen, wenn verfügbar
-                const score = gameState.playerScores[player] || 0;
-                playerCard.textContent = `${player} (${score} Pkt.)`;
-                
-                joinPlayerList.appendChild(playerCard);
-            });
-        }
-        
-        function updateGamePlayerList() {
-            gamePlayerList.innerHTML = '';
-            gameState.players.forEach(player => {
-                const playerCard = document.createElement('div');
-                playerCard.classList.add('player-card');
-                
-                // Punktestand hinzufügen, wenn verfügbar
-                const score = gameState.playerScores[player] || 0;
-                playerCard.textContent = `${player} (${score} Pkt.)`;
-                
-                gamePlayerList.appendChild(playerCard);
-            });
-        }
-        
-        // Hilfsfunktion zum Aktualisieren aller Spielerlisten
-        function updatePlayerLists() {
-            if (document.getElementById('hostSection').classList.contains('hidden') === false) {
-                updateHostPlayerList();
+
+
+
+
+
+
+        // Verbesserte Version des startGameBtn Event-Listeners
+        startGameBtn.addEventListener('click', () => {
+            console.log("Spiel starten Button wurde geklickt"); // Debug-Ausgabe
+            
+            if (!gameState.isHost) {
+                console.log("Nicht der Host, Aktion ignoriert");
+                return;
             }
             
-            if (document.getElementById('joinSection').classList.contains('hidden') === false) {
-                updateJoinPlayerList();
+            if (gameState.players.length < 3) {
+                alert('Es müssen mindestens 3 Spieler sein, um das Spiel zu starten.');
+                return;
             }
             
-            if (document.getElementById('gameSection').classList.contains('hidden') === false) {
-                updateGamePlayerList();
-                updatePlayerOrderList();
+            // Überprüfe ob Wort und Kategorie vorhanden sind
+            if (!gameState.category || gameState.category === '') {
+                alert('Bitte wähle eine Kategorie oder gib ein eigenes Wort ein.');
+                return;
             }
-        }
-        
-        // Aktualisierte Funktion zum Anzeigen der Ergebnisse mit Punkteberechnung
-        function showResults() {
-            document.getElementById('votingSection').style.display = 'none';
-            document.getElementById('resultSection').style.display = 'block';
             
-            // Abstimmungsergebnisse und Imposter-Vermutung abrufen
-            database.ref('games/' + gameState.gameCode).once('value', (snapshot) => {
-                if (snapshot.exists()) {
-                    const gameData = snapshot.val();
-                    const votes = gameData.votes || {};
-                    const wordGuess = gameData.wordGuess || "nichts geraten";
-                    const imposter = gameState.players[gameState.imposterIndex];
-                    
-                    // Bisherige Punktestände abrufen
-                    gameState.playerScores = gameData.playerScores || {};
-                    for (const player of gameState.players) {
-                        if (!gameState.playerScores[player]) {
-                            gameState.playerScores[player] = 0;
-                        }
-                    }
-                    
-                    // Stimmen zählen
-                    const voteCounts = {};
-                    Object.entries(votes).forEach(([voter, votedFor]) => {
-                        voteCounts[votedFor] = (voteCounts[votedFor] || 0) + 1;
-                        
-                        // Wenn normaler Spieler den Imposter richtig wählt, bekommt er einen Punkt
-                        if (voter !== imposter && votedFor === imposter) {
-                            gameState.playerScores[voter] = (gameState.playerScores[voter] || 0) + 1;
-                        }
-                    });
-                    
-                    // Imposter bekommt einen Punkt für jeden Spieler, der nicht für ihn gestimmt hat
-                    let incorrectVotes = 0;
-                    gameState.players.forEach(player => {
-                        if (player !== imposter && votes[player] !== imposter) {
-                            incorrectVotes++;
-                        }
-                    });
-                    
-                    gameState.playerScores[imposter] = (gameState.playerScores[imposter] || 0) + incorrectVotes;
-                    
-                    // Wenn der Imposter das Wort richtig errät, bekommt er einen Punkt
-                    if (wordGuess.toLowerCase() === gameState.word.toLowerCase()) {
-                        gameState.playerScores[imposter] = (gameState.playerScores[imposter] || 0) + 1;
-                    }
-                    
-                    // Meistgewählten Spieler ermitteln
-                    let maxVotes = 0;
-                    let mostVotedPlayer = "";
-                    for (const player in voteCounts) {
-                        if (voteCounts[player] > maxVotes) {
-                            maxVotes = voteCounts[player];
-                            mostVotedPlayer = player;
-                        }
-                    }
-                    
-                    // Punktestände in Firebase aktualisieren
-                    database.ref('games/' + gameState.gameCode + '/playerScores').set(gameState.playerScores);
-                    
-                    // Ergebnisse anzeigen
-                    const resultContent = document.getElementById('resultContent');
-                    
-                    let resultHTML = `
-                        <p>Der <span class="imposter-reveal">Imposter</span> war: <strong>${imposter}</strong></p>
-                        <p>Das geheime Wort war: <span class="word-reveal">${gameState.word}</span></p>
-                        <p>Der Imposter hat geraten: <strong>${wordGuess}</strong></p>
-                        <p>Die meisten Stimmen erhielt: <strong>${mostVotedPlayer}</strong> (${maxVotes} Stimmen)</p>
-                        
-                        <h3>Punkteverteilung dieser Runde:</h3>
-                        <ul>
-                    `;
-                    
-                    // Imposter-Punkte erklären
-                    resultHTML += `<li><strong>${imposter} (Imposter)</strong>: `;
-                    if (incorrectVotes > 0) {
-                        resultHTML += `+${incorrectVotes} Punkte für ${incorrectVotes} getäuschte Spieler. `;
-                    }
-                    if (wordGuess.toLowerCase() === gameState.word.toLowerCase()) {
-                        resultHTML += `+1 Punkt für korrektes Erraten des Wortes. `;
-                    }
-                    resultHTML += `</li>`;
-                    
-                    // Normale Spieler-Punkte erklären
-                    gameState.players.forEach(player => {
-                        if (player !== imposter) {
-                            if (votes[player] === imposter) {
-                                resultHTML += `<li><strong>${player}</strong>: +1 Punkt für die korrekte Wahl des Imposters.</li>`;
-                            } else {
-                                resultHTML += `<li><strong>${player}</strong>: Keine Punkte in dieser Runde.</li>`;
-                            }
-                        }
-                    });
-                    
-                    resultHTML += `</ul>
-                        <h3>Aktueller Punktestand:</h3>
-                        <ul>
-                    `;
-                    
-                    // Spieler nach Punkten sortieren (höchste zuerst)
-                    const sortedPlayers = [...gameState.players].sort((a, b) => 
-                        (gameState.playerScores[b] || 0) - (gameState.playerScores[a] || 0)
-                    );
-                    
-                    sortedPlayers.forEach(player => {
-                        const score = gameState.playerScores[player] || 0;
-                        const isImposter = player === imposter ? ' (Imposter)' : '';
-                        resultHTML += `<li>${player}${isImposter}: <strong>${score} Punkte</strong></li>`;
-                    });
-                    
-                    resultHTML += `</ul>`;
-                    
-                    // Spielergebnis anzeigen (Imposter gewonnen oder verloren)
-                    let gameOutcome = '';
-                    if (mostVotedPlayer === imposter) {
-                        gameOutcome = '<p class="normal-player">Die normalen Spieler haben den Imposter entlarvt!</p>';
-                    } else if (wordGuess.toLowerCase() === gameState.word.toLowerCase()) {
-                        gameOutcome = '<p class="imposter">Der Imposter hat das Wort korrekt erraten!</p>';
-                    } else {
-                        gameOutcome = '<p class="imposter">Der Imposter blieb unentdeckt!</p>';
-                    }
-                    
-                    resultHTML += gameOutcome;
-                    resultContent.innerHTML = resultHTML;
+            if (!gameState.word || gameState.word === '') {
+                // Neu-Generierung des Wortes falls nicht vorhanden
+                if (gameState.category !== 'custom') {
+                    const categoryWords = wordCategories[gameState.category];
+                    gameState.word = categoryWords[Math.floor(Math.random() * categoryWords.length)];
+                } else {
+                    alert('Bitte gib ein eigenes Wort ein.');
+                    return;
                 }
+            }
+            
+            // Imposter zufällig auswählen
+            const imposterIndex = Math.floor(Math.random() * gameState.players.length);
+            
+            // Zufällige Spielerreihenfolge erstellen
+            const playerOrder = createRandomPlayerOrder(gameState.players);
+            
+            console.log("Starte Spiel mit:", {
+                imposterIndex,
+                playerCount: gameState.players.length,
+                category: gameState.category,
+                word: gameState.word
             });
             
-            // "Neue Runde starten"-Button nur für Host anzeigen
-            if (gameState.isHost) {
-                document.getElementById('startNewRoundBtn').classList.remove('hidden');
-            }
-        }
+            // Spiel starten und Imposter sowie Spielerreihenfolge setzen
+            database.ref('games/' + gameState.gameCode).update({
+                started: true,
+                imposterIndex: imposterIndex,
+                playerOrder: playerOrder,
+                category: gameState.category,
+                word: gameState.word,
+                votingPhase: false,  // Wichtig: Stellen Sie sicher, dass die Abstimmungsphase zu Beginn falsch ist
+                votes: null,         // Alte Stimmen zurücksetzen
+                playersVoted: [],    // Liste der abgestimmten Spieler zurücksetzen
+                wordGuess: null      // Wortschätzung zurücksetzen
+            });
+            
+            gameState.imposterIndex = imposterIndex;
+            gameState.playerOrder = playerOrder;
+            gameState.started = true; // Füge diesen lokalen Status-Update hinzu
+            
+            // Gameview direkt anzeigen, um visuelle Rückmeldung zu geben
+            showGameView();
+        });
         
-        // Spielverlassen oder Neues Spiel - Punkte zurücksetzen
+        
+        // Neues Spiel starten
         newGameBtn.addEventListener('click', () => {
             // Spiel verlassen und zurücksetzen
             if (gameState.gameCode) {
@@ -730,16 +572,14 @@
                             if (index !== -1) {
                                 players.splice(index, 1);
                                 database.ref('games/' + gameState.gameCode + '/players').set(players);
-                                
-                                // Punkte des Spielers zurücksetzen
-                                database.ref('games/' + gameState.gameCode + '/playerScores/' + gameState.currentPlayerName).remove();
                             }
                         }
                     });
                 }
             }
-        
-            // Gamestate zurücksetzen
+
+            
+// Gamestate zurücksetzen
             gameState.gameCode = '';
             gameState.word = '';
             gameState.category = '';
@@ -751,7 +591,6 @@
             gameState.wordGuess = '';
             gameState.votingComplete = false;
             gameState.playersVoted = [];
-            gameState.playerScores = {}; // Punkte zurücksetzen
             
             // UI zurücksetzen
             hostSection.classList.remove('hidden');
@@ -775,34 +614,6 @@
             // Tabs zurücksetzen
             hostTab.classList.add('active');
             joinTab.classList.remove('active');
-        });
-        
-        // Bei beforeunload - wenn Spieler die Seite verlässt
-        window.addEventListener('beforeunload', () => {
-            if (gameState.gameCode) {
-                // Vom Firebase-Listener abmelden
-                database.ref('games/' + gameState.gameCode).off();
-                
-                if (gameState.isHost) {
-                    // Als Host: Spiel löschen
-                    database.ref('games/' + gameState.gameCode).remove();
-                } else {
-                    // Als Spieler: Aus Spielerliste entfernen und Punkte zurücksetzen
-                    database.ref('games/' + gameState.gameCode + '/players').once('value', (snapshot) => {
-                        if (snapshot.exists()) {
-                            const players = snapshot.val();
-                            const index = players.indexOf(gameState.currentPlayerName);
-                            if (index !== -1) {
-                                players.splice(index, 1);
-                                database.ref('games/' + gameState.gameCode + '/players').set(players);
-                                
-                                // Punkte des Spielers zurücksetzen
-                                database.ref('games/' + gameState.gameCode + '/playerScores/' + gameState.currentPlayerName).remove();
-                            }
-                        }
-                    });
-                }
-            }
         });
 
 
