@@ -486,9 +486,15 @@
 
 
 
-        
+
+        // Verbesserte Version des startGameBtn Event-Listeners
         startGameBtn.addEventListener('click', () => {
-            if (!gameState.isHost) return;
+            console.log("Spiel starten Button wurde geklickt"); // Debug-Ausgabe
+            
+            if (!gameState.isHost) {
+                console.log("Nicht der Host, Aktion ignoriert");
+                return;
+            }
             
             if (gameState.players.length < 3) {
                 alert('Es müssen mindestens 3 Spieler sein, um das Spiel zu starten.');
@@ -496,12 +502,12 @@
             }
             
             // Überprüfe ob Wort und Kategorie vorhanden sind
-            if (gameState.category === '' || gameState.category === null) {
+            if (!gameState.category || gameState.category === '') {
                 alert('Bitte wähle eine Kategorie oder gib ein eigenes Wort ein.');
                 return;
             }
             
-            if (gameState.word === '' || gameState.word === null) {
+            if (!gameState.word || gameState.word === '') {
                 // Neu-Generierung des Wortes falls nicht vorhanden
                 if (gameState.category !== 'custom') {
                     const categoryWords = wordCategories[gameState.category];
@@ -518,17 +524,32 @@
             // Zufällige Spielerreihenfolge erstellen
             const playerOrder = createRandomPlayerOrder(gameState.players);
             
+            console.log("Starte Spiel mit:", {
+                imposterIndex,
+                playerCount: gameState.players.length,
+                category: gameState.category,
+                word: gameState.word
+            });
+            
             // Spiel starten und Imposter sowie Spielerreihenfolge setzen
             database.ref('games/' + gameState.gameCode).update({
                 started: true,
                 imposterIndex: imposterIndex,
                 playerOrder: playerOrder,
                 category: gameState.category,
-                word: gameState.word
+                word: gameState.word,
+                votingPhase: false,  // Wichtig: Stellen Sie sicher, dass die Abstimmungsphase zu Beginn falsch ist
+                votes: null,         // Alte Stimmen zurücksetzen
+                playersVoted: [],    // Liste der abgestimmten Spieler zurücksetzen
+                wordGuess: null      // Wortschätzung zurücksetzen
             });
             
             gameState.imposterIndex = imposterIndex;
             gameState.playerOrder = playerOrder;
+            gameState.started = true; // Füge diesen lokalen Status-Update hinzu
+            
+            // Gameview direkt anzeigen, um visuelle Rückmeldung zu geben
+            showGameView();
         });
         
         
