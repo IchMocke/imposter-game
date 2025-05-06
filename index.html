@@ -7,338 +7,10 @@
     <!-- Firebase SDK einfügen -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <style>
-        
-    /* NEUE CSS-VARIABLEN FÜR DARK MODE */
-    :root {
-        --bg-color: #f0f2f5;
-        --container-bg: white;
-        --text-color: #333;
-        --card-bg: #eee;
-        --inactive-tab: #e9ecef;
-        --button-color: #5865F2;
-        --button-text: white;
-        --info-block: #e9ecef;
-        --border-color: #ddd;
-        --shadow-color: rgba(0, 0, 0, 0.1);
-        --normal-player-bg: #43B581;
-        --imposter-bg: #F04747;
-        --voting-option: #e9ecef;
-        --voting-hover: #d0d7de;
-        --vote-count-bg: #e9ecef;
-    }
-
-    /* NEUE DARK MODE KLASSE */
-    .dark-mode {
-        --bg-color: #121212;
-        --container-bg: #1e1e1e;
-        --text-color: #e0e0e0;
-        --card-bg: #2d2d2d;
-        --inactive-tab: #2d2d2d;
-        --button-color: #5865F2;
-        --button-text: white;
-        --info-block: #2d2d2d;
-        --border-color: #444;
-        --shadow-color: rgba(0, 0, 0, 0.3);
-        --normal-player-bg: #43B581;
-        --imposter-bg: #F04747;
-        --voting-option: #2d2d2d;
-        --voting-hover: #3d3d3d;
-        --vote-count-bg: #2d2d2d;
-    }
-
-    /* GEÄNDERTE STYLES - JETZT MIT VARIABLEN */
-    body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
-        background-color: var(--bg-color);
-        color: var(--text-color);
-        transition: background-color 0.3s, color 0.3s;
-    }
-    .container {
-        background-color: var(--container-bg);
-        border-radius: 8px;
-        padding: 20px;
-        box-shadow: 0 2px 10px var(--shadow-color);
-        transition: background-color 0.3s, box-shadow 0.3s;
-    }
-    h1 {
-        color: var(--text-color);
-        transition: color 0.3s;
-        text-align: center;   
-    }
-    h2, h3 {
-        color: var(--text-color);
-        transition: color 0.3s;      
-    }
-    input, button, select {
-        padding: 10px;
-        margin: 5px 0;
-        border-radius: 4px;
-        border: 1px solid var(--border-color);
-        width: 100%;
-        box-sizing: border-box;
-        background-color: var(--container-bg);
-        color: var(--text-color);
-        transition: background-color 0.3s, color 0.3s, border-color 0.3s;
-    }
-    button {
-        background-color: var(--button-color);
-        color: var(--button-text);
-        border: none;
-        cursor: pointer;
-        transition: background-color 0.3s;
-    }
-    button:hover {
-        background-color: #4752C4;
-    }
-    .hidden {
-        display: none;
-    }
-    .role-display {
-        margin-top: 20px;
-        padding: 15px;
-        border-radius: 6px;
-        text-align: center;
-        font-size: 18px;
-    }
-    .normal-player {
-        background-color: var(--normal-player-bg);
-        color: white;
-    }
-    .imposter {
-        background-color: var(--imposter-bg);
-        color: white;
-    }
-    .word-display {
-        font-weight: bold;
-        font-size: 24px;
-        margin: 10px 0;
-    }
-    .player-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 15px;
-    }
-    .player-card {
-        background: var(--card-bg);
-        padding: 8px 12px;
-        border-radius: 20px;
-        display: inline-block;
-        transition: background-color 0.3s;
-    }
-    .game-code {
-        text-align: center;
-        font-size: 24px;
-        font-weight: bold;
-        margin: 15px 0;
-        padding: 10px;
-        background: var(--info-block);
-        border-radius: 4px;
-        transition: background-color 0.3s;
-    }
-    .tabs {
-        display: flex;
-        margin-bottom: 20px;
-    }
-    .tab {
-        padding: 10px 20px;
-        cursor: pointer;
-        background: var(--inactive-tab);
-        border-radius: 4px 4px 0 0;
-        margin-right: 5px;
-        transition: background-color 0.3s, color 0.3s;
-    }
-    .tab.active {
-        background: var(--button-color);
-        color: white;
-    }
-    .form-group {
-        margin-bottom: 15px;
-    }
-    .small-text {
-        font-size: 12px;
-        color: #666;
-    }
-    .info-block {
-        background: var(--info-block);
-        padding: 15px;
-        border-radius: 4px;
-        margin: 15px 0;
-        transition: background-color 0.3s;
-    }
-    .category-select {
-        margin-bottom: 15px;
-    }
-    .category-option {
-        display: inline-block;
-        margin: 5px;
-        padding: 10px 15px;
-        background: var(--info-block);
-        border-radius: 20px;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-    .category-option:hover {
-        background: var(--voting-hover);
-    }
-    .category-option.selected {
-        background: var(--button-color);
-        color: white;
-    }
-    .word-selection {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        margin-top: 15px;
-    }
-    .or-divider {
-        text-align: center;
-        margin: 15px 0;
-        position: relative;
-    }
-    .or-divider:before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: var(--border-color);
-    }
-    .or-divider span {
-        background: var(--container-bg);
-        padding: 0 10px;
-        position: relative;
-        color: var(--text-color);
-        transition: background-color 0.3s, color 0.3s;
-    }
-
-    .player-order-section {
-        margin-top: 20px;
-        padding: 15px;
-        background-color: var(--info-block);
-        border-radius: 6px;
-        transition: background-color 0.3s;
-    }
-    .player-order-list {
-        padding-left: 25px;
-    }
-    .player-order-list li {
-        margin: 8px 0;
-        padding: 8px 12px;
-        background-color: var(--card-bg);
-        border-radius: 4px;
-        transition: background-color 0.3s;
-    }
-    .current-player {
-        background-color: var(--button-color) !important;
-        color: white;
-        font-weight: bold;
-    }
-
-    .player-voting-option {
-        padding: 10px;
-        margin: 5px 0;
-        background-color: var(--voting-option);
-        border-radius: 4px;
-        cursor: pointer;
-        transition: background-color 0.3s;
-    }
-    
-    .player-voting-option:hover {
-        background-color: var(--voting-hover);
-    }
-    
-    .player-voting-option.selected {
-        background-color: var(--button-color);
-        color: white;
-    }
-    
-    #resultSection {
-        margin-top: 20px;
-        padding: 15px;
-        background-color: var(--info-block);
-        border-radius: 6px;
-        transition: background-color 0.3s;
-    }
-    
-    .imposter-reveal {
-        color: var(--imposter-bg);
-        font-weight: bold;
-    }
-    
-    .word-reveal {
-        color: var(--normal-player-bg);
-        font-weight: bold;
-    }
-    
-    .vote-count {
-        background: var(--vote-count-bg);
-        border-radius: 50%;
-        display: inline-block;
-        width: 24px;
-        height: 24px;
-        text-align: center;
-        line-height: 24px;
-        margin-left: 10px;
-        transition: background-color 0.3s;
-    }
-
-    /* NEUER STYLE FÜR DEN THEME TOGGLE BUTTON */
-    .theme-toggle {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        background: var(--button-color);
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        font-size: 20px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        z-index: 100;
-        transition: transform 0.3s;
-    }
-
-    .theme-toggle:hover {
-        transform: scale(1.1);
-    }
-
-    #startNewRoundBtn {
-        margin-top: 20px;
-        background-color: var(--normal-player-bg);
-    }
-    
-    #startNewRoundBtn:hover {
-        background-color: #36A46E;
-    }
-
-        
-
-    @media (max-width: 600px) {
-        .theme-toggle {
-            top: 10px;
-            right: 10px;
-            width: 35px;
-            height: 35px;
-        }
-    }        
-    </style>
-   
+    <!-- CSS einbinden -->
+    <link rel="stylesheet" href="styles.css">
 </head>
-
-    
 <body>
-
     <button class="theme-toggle" id="themeToggle">🌙</button>
     
     <div class="container">
@@ -440,53 +112,42 @@
             </div>
 
             <div class="player-order-section">
-            <h3>Spielerreihenfolge:</h3>
-            <ol id="playerOrderList" class="player-order-list">
-            <!-- Spielerreihenfolge wird hier angezeigt -->
-            </ol>
+                <h3>Spielerreihenfolge:</h3>
+                <ol id="playerOrderList" class="player-order-list">
+                    <!-- Spielerreihenfolge wird hier angezeigt -->
+                </ol>
             </div>
 
             <div class="section" id="votingSection" style="display:none;">
-            <h2>Abstimmungsphase</h2>
-
-
-
-
+                <h2>Abstimmungsphase</h2>
                 
-            <!-- Für normale Spieler: Abstimmung -->
-            <div id="normalPlayerVoting" style="display:none;">
-                <p>Wer ist deiner Meinung nach der Imposter?</p>
-                <div id="votingPlayerList" class="player-voting-list">
+                <!-- Für normale Spieler: Abstimmung -->
+                <div id="normalPlayerVoting" style="display:none;">
+                    <p>Wer ist deiner Meinung nach der Imposter?</p>
+                    <div id="votingPlayerList" class="player-voting-list">
+                        <!-- Wird dynamisch gefüllt -->
+                    </div>
+                    <p id="voteConfirmation" class="hidden" style="color: green; font-weight: bold;">Deine Stimme wurde gezählt!</p>
+                </div>
+                
+                <!-- Für den Imposter: Wort erraten -->
+                <div id="imposterGuessing" style="display:none;">
+                    <p>Errate das geheime Wort:</p>
+                    <input type="text" id="wordGuessInput" placeholder="Deine Vermutung...">
+                    <button id="submitGuessBtn">Wort einreichen</button>
+                    <p id="guessConfirmation" class="hidden" style="color: green; font-weight: bold;">Deine Vermutung wurde gesendet!</p>
+                </div>
+            </div>
+            
+            <div class="section" id="resultSection" style="display:none;">
+                <h2>Spielergebnis</h2>
+                <div id="resultContent">
                     <!-- Wird dynamisch gefüllt -->
                 </div>
-                <p id="voteConfirmation" class="hidden" style="color: green; font-weight: bold;">Deine Stimme wurde gezählt!</p>
+                <button id="startNewRoundBtn" class="hidden">Neue Runde starten</button>
             </div>
             
-            <!-- Für den Imposter: Wort erraten -->
-            <div id="imposterGuessing" style="display:none;">
-                <p>Errate das geheime Wort:</p>
-                <input type="text" id="wordGuessInput" placeholder="Deine Vermutung...">
-                <button id="submitGuessBtn">Wort einreichen</button>
-                <p id="guessConfirmation" class="hidden" style="color: green; font-weight: bold;">Deine Vermutung wurde gesendet!</p>
-            </div>
-        </div>
-        
-        <div class="section" id="resultSection" style="display:none;">
-            <h2>Spielergebnis</h2>
-            <div id="resultContent">
-                <!-- Wird dynamisch gefüllt -->
-            </div>
-            <button id="startNewRoundBtn" class="hidden">Neue Runde starten</button>
-            
-        </div>
-        
-        <button id="endDiscussionBtn" style="display:none;">Diskussion beenden & Abstimmung starten</button>
-
-
-
-
-            
-            
+            <button id="endDiscussionBtn" style="display:none;">Diskussion beenden & Abstimmung starten</button>
             <button id="newGameBtn">Neues Spiel</button>
         </div>
     </div>
