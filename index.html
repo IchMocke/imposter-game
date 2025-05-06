@@ -217,6 +217,7 @@
             started: false,
             currentPlayerName: '',
             votes: {},
+            points: {}, 
             wordGuess: '',
             votingComplete: false,
             playersVoted: [],
@@ -328,6 +329,8 @@
             
             // Spieler hinzufügen
             gameState.players = [name];
+            gameState.points = {};
+            gameState.points[name] = 0;
             
             // Spiel in Firebase erstellen
             database.ref('games/' + gameCode).set({
@@ -338,9 +341,10 @@
                 started: false,
                 hostName: name,
                 createdAt: firebase.database.ServerValue.TIMESTAMP,
-                votes: {},          
-                playersVoted: [],   
-                votingPhase: false  
+                votes: {},           
+                playersVoted: [],    
+                votingPhase: false,
+                points: gameState.points  // NEU: Punktestand der Spieler
             });
             
             // Host dieser Spielsitzung zuordnen
@@ -376,6 +380,12 @@
                             showGameView();
                         }
                     });
+                }
+            });
+
+            database.ref('games/' + gameCode + '/points').on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    gameState.points = snapshot.val();
                 }
             });
             
@@ -443,6 +453,14 @@
                     if (!gameState.players.includes(name)) {
                         gameState.players.push(name);
                     }
+
+                    // Punkte des Spielers initialisieren
+                    database.ref('games/' + code + '/points/' + name).once('value', (snapshot) => {
+                        if (!snapshot.exists()) {
+                            // Wenn der Spieler neu ist, setze seine Punkte auf 0
+                            database.ref('games/' + code + '/points/' + name).set(0);
+                        }
+                    });
                     
                     // Spieler zur Spielerliste in Firebase hinzufügen
                     database.ref('games/' + code + '/players').set(gameState.players);
@@ -478,6 +496,12 @@
                     waitingRoomSection.classList.remove('hidden');
                 } else {
                     alert('Ungültiger Spiel-Code. Bitte überprüfe den Code und versuche es erneut.');
+                }
+            });
+
+            database.ref('games/' + code + '/points').on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    gameState.points = snapshot.val();
                 }
             });
         });
@@ -575,7 +599,13 @@
                             }
                         }
                     });
+                    
+                    if (!gameState.isHost) {
+                        database.ref('games/' + gameState.gameCode + '/points/' + gameState.currentPlayerName).remove();
+                    }
+                    
                 }
+                
             }
 
             
@@ -588,6 +618,7 @@
             gameState.started = false;
             gameState.isHost = false;
             gameState.votes = {};
+            gameState.points = {}; 
             gameState.wordGuess = '';
             gameState.votingComplete = false;
             gameState.playersVoted = [];
@@ -817,7 +848,7 @@
                     // Als Host: Spiel löschen
                     database.ref('games/' + gameState.gameCode).remove();
                 } else {
-                    // Als Spieler: Aus Spielerliste entfernen
+                    // Als Spieler: Aus Spielerliste entfernen UND Punkte zurücksetzen
                     database.ref('games/' + gameState.gameCode + '/players').once('value', (snapshot) => {
                         if (snapshot.exists()) {
                             const players = snapshot.val();
@@ -825,6 +856,8 @@
                             if (index !== -1) {
                                 players.splice(index, 1);
                                 database.ref('games/' + gameState.gameCode + '/players').set(players);
+                                // Punkte des Spielers löschen
+                                database.ref('games/' + gameState.gameCode + '/points/' + gameState.currentPlayerName).remove();
                             }
                         }
                     });
@@ -1009,12 +1042,38 @@ function setupVotingResultsListener() {
                     const votes = gameData.votes || {};
                     const wordGuess = gameData.wordGuess || "nichts geraten";
                     const imposter = gameState.players[gameState.imposterIndex];
+                    const previousPoints = gameData.points || {};
+                    
+                    // Neue Punkte für diese Runde berechnen
+                    let newPoints = {...previousPoints};
                     
                     // Stimmen zählen
                     const voteCounts = {};
-                    Object.values(votes).forEach(vote => {
-                        voteCounts[vote] = (voteCounts[vote] || 0) + 1;
+                    Object.entries(votes).forEach(([voter, votedFor]) => {
+                        voteCounts[votedFor] = (voteCounts[votedFor] || 0) + 1;
+                        
+                        // Prüfen, ob ein normaler Spieler den Imposter richtig erraten hat
+                        if (votedFor === imposter && voter !== imposter) {
+                            // Normaler Spieler hat den Imposter erraten: +1 Punkt
+                            newPoints[voter] = (newPoints[voter] || 0) + 1;
+                        }
                     });
+                    
+                    // Punkte für den Imposter berechnen
+                    // 1. Für jede falsche Anschuldigung (jeder der NICHT für den Imposter gestimmt hat)
+                    gameState.players.forEach(player => {
+                        if (player !== imposter && votes[player] !== imposter) {
+                            // Imposter hat einen Spieler getäuscht: +1 Punkt
+                            newPoints[imposter] = (newPoints[imposter] || 0) + 1;
+                        }
+                    });
+                    
+                    // 2. Hat der Imposter das Wort erraten?
+                    const wordGuessCorrect = wordGuess.toLowerCase() === gameState.word.toLowerCase();
+                    if (wordGuessCorrect) {
+                        // Imposter hat das Wort erraten: +1 Punkt
+                        newPoints[imposter] = (newPoints[imposter] || 0) + 1;
+                    }
                     
                     // Meistgewählten Spieler ermitteln
                     let maxVotes = 0;
@@ -1026,36 +1085,46 @@ function setupVotingResultsListener() {
                         }
                     }
                     
+                    // Punkte in Firebase aktualisieren
+                    database.ref('games/' + gameState.gameCode + '/points').set(newPoints);
+                    gameState.points = newPoints;
+                    
                     // Ergebnisse anzeigen
                     const resultContent = document.getElementById('resultContent');
                     
                     let resultHTML = `
                         <p>Der <span class="imposter-reveal">Imposter</span> war: <strong>${imposter}</strong></p>
                         <p>Das geheime Wort war: <span class="word-reveal">${gameState.word}</span></p>
-                        <p>Der Imposter hat geraten: <strong>${wordGuess}</strong></p>
+                        <p>Der Imposter hat geraten: <strong>${wordGuess}</strong> ${wordGuessCorrect ? '✓' : '✗'}</p>
                         <p>Die meisten Stimmen erhielt: <strong>${mostVotedPlayer}</strong> (${maxVotes} Stimmen)</p>
-                        <h3>Abstimmungsergebnisse:</h3>
-                        <ul>
+                        
+                        <h3>Punkteübersicht:</h3>
+                        <div class="points-list">
                     `;
                     
-                    // Spieler sortieren nach Stimmenzahl
-                    const sortedPlayers = Object.keys(voteCounts).sort((a, b) => voteCounts[b] - voteCounts[a]);
+                    // Spieler nach Punkten sortieren (absteigend)
+                    const sortedPlayers = [...gameState.players].sort((a, b) => 
+                        (newPoints[b] || 0) - (newPoints[a] || 0)
+                    );
                     
                     sortedPlayers.forEach(player => {
                         const isImposter = player === imposter ? ' (Imposter)' : '';
-                        resultHTML += `<li>${player}${isImposter} <span class="vote-count">${voteCounts[player]}</span></li>`;
+                        resultHTML += `<div class="points-item">
+                            <span class="player-name">${player}${isImposter}</span>
+                            <span class="points-count">${newPoints[player] || 0} Punkte</span>
+                        </div>`;
                     });
                     
-                    resultHTML += `</ul>`;
+                    resultHTML += `</div>`;
                     
-                    // Spielergebnis anzeigen (Imposter gewonnen oder verloren)
+                    // Spielergebnis anzeigen
                     let gameOutcome = '';
                     if (mostVotedPlayer === imposter) {
-                        gameOutcome = '<p class="normal-player">Die normalen Spieler haben gewonnen! Der Imposter wurde entlarvt.</p>';
+                        gameOutcome = '<p class="normal-player">Die normalen Spieler haben den Imposter entlarvt!</p>';
                     } else if (wordGuess.toLowerCase() === gameState.word.toLowerCase()) {
-                        gameOutcome = '<p class="imposter">Der Imposter hat gewonnen! Das Wort wurde korrekt erraten.</p>';
+                        gameOutcome = '<p class="imposter">Der Imposter hat das Wort erraten!</p>';
                     } else {
-                        gameOutcome = '<p class="imposter">Der Imposter hat gewonnen! Er wurde nicht entlarvt.</p>';
+                        gameOutcome = '<p class="imposter">Der Imposter wurde nicht entlarvt!</p>';
                     }
                     
                     resultHTML += gameOutcome;
