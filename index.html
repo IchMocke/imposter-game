@@ -570,10 +570,13 @@
             
             gameState.imposterIndex = imposterIndex;
             gameState.playerOrder = playerOrder;
-            gameState.started = true; // Füge diesen lokalen Status-Update hinzu
-            gameState.wordGuess = ""; // Lokalen Wortversuch zurücksetzen
+            gameState.started = true; 
+            gameState.wordGuess = ""; 
+            gameState.votingPhase = false;
+            gameState.votes = {};
+            gameState.playersVoted = [];
             
-            // Gameview direkt anzeigen, um visuelle Rückmeldung zu geben
+            // Gameview direkt anzeigen
             showGameView();
         });
         
@@ -604,13 +607,10 @@
                     if (!gameState.isHost) {
                         database.ref('games/' + gameState.gameCode + '/points/' + gameState.currentPlayerName).remove();
                     }
-                    
                 }
-                
             }
-
             
-// Gamestate zurücksetzen
+            // Gamestate zurücksetzen
             gameState.gameCode = '';
             gameState.word = '';
             gameState.category = '';
@@ -623,6 +623,7 @@
             gameState.wordGuess = '';
             gameState.votingComplete = false;
             gameState.playersVoted = [];
+            gameState.votingPhase = false;
             
             // UI zurücksetzen
             hostSection.classList.remove('hidden');
@@ -637,6 +638,10 @@
             document.getElementById('imposterGuessing').style.display = 'none';
             document.getElementById('voteConfirmation').classList.add('hidden');
             document.getElementById('guessConfirmation').classList.add('hidden');
+            
+            // WICHTIG: Formular-Elemente explizit zurücksetzen
+            document.getElementById('submitGuessBtn').disabled = false; 
+            document.getElementById('wordGuessInput').value = '';
             
             // Eingaben und Auswahlen zurücksetzen
             wordInput.value = '';
@@ -662,6 +667,7 @@
             gameState.playersVoted = [];
             gameState.imposterIndex = -1;
             gameState.playerOrder = [];
+            gameState.votingPhase = false;
             
             // UI-Elemente vollständig zurücksetzen
             gameSection.classList.add('hidden');
@@ -707,6 +713,9 @@
             // Spielerliste für Host aktualisieren
             updateHostPlayerList();
         });
+
+
+        
         
         // Außerdem müssen wir die showGameView-Funktion modifizieren, damit sie die Formular-Elemente korrekt zurücksetzt:
         function showGameView() {
@@ -717,6 +726,8 @@
             // Formular-Elemente zurücksetzen
             document.getElementById('submitGuessBtn').disabled = false;
             document.getElementById('wordGuessInput').value = '';
+            document.getElementById('voteConfirmation').classList.add('hidden');
+            document.getElementById('guessConfirmation').classList.add('hidden');
             
             // Aktuelle Spielinformationen aus Firebase laden
             database.ref('games/' + gameState.gameCode).once('value', (snapshot) => {
@@ -795,6 +806,7 @@
                     gameState.playersVoted = [];
                     gameState.imposterIndex = -1;
                     gameState.playerOrder = [];
+                    gameState.votingPhase = false;
                     
                     // UI für alle Spieler zurücksetzen
                     document.getElementById('votingSection').style.display = 'none';
@@ -818,7 +830,7 @@
                     }
                 }
             });
-        }  
+        }
 
 
 
@@ -1008,14 +1020,22 @@
             document.getElementById('endDiscussionBtn').style.display = 'none';
             document.getElementById('votingSection').style.display = 'block';
             
+            // Zurücksetzen der Formularelemente
+            document.getElementById('submitGuessBtn').disabled = false;
+            document.getElementById('wordGuessInput').value = '';
+            document.getElementById('voteConfirmation').classList.add('hidden');
+            document.getElementById('guessConfirmation').classList.add('hidden');
+            
             const playerIndex = gameState.players.indexOf(gameState.currentPlayerName);
             
             if (playerIndex === gameState.imposterIndex) {
                 // Imposter sieht Ratefeld
                 document.getElementById('imposterGuessing').style.display = 'block';
+                document.getElementById('normalPlayerVoting').style.display = 'none';
             } else {
                 // Normale Spieler sehen Abstimmungsoptionen
                 document.getElementById('normalPlayerVoting').style.display = 'block';
+                document.getElementById('imposterGuessing').style.display = 'none';
                 populateVotingOptions();
             }
         }
